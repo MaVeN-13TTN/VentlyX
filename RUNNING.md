@@ -10,13 +10,13 @@ This guide provides step-by-step instructions for setting up and running both th
 - Composer 2.0 or higher
 - Node.js 18.0 or higher
 - NPM 7.0 or higher
-- MySQL 5.7+ or PostgreSQL 10+
+- PostgreSQL 12+ (recommended)
 
 ### Required Software
 
 - Git
 - A web server (Apache, Nginx, or PHP's built-in server)
-- A database server (MySQL or PostgreSQL)
+- PostgreSQL database server
 - A text editor or IDE (Visual Studio Code, PhpStorm, etc.)
 
 ## Backend Setup (Laravel)
@@ -42,15 +42,15 @@ cp .env.example .env
 php artisan key:generate
 ```
 
-Now, edit the `.env` file to configure your database connection:
+Now, edit the `.env` file to configure your PostgreSQL database connection:
 
 ```
-DB_CONNECTION=mysql
+DB_CONNECTION=pgsql
 DB_HOST=127.0.0.1
-DB_PORT=3306
+DB_PORT=5432
 DB_DATABASE=ventlyx_db
-DB_USERNAME=your_db_username
-DB_PASSWORD=your_db_password
+DB_USERNAME=ventlyx_user
+DB_PASSWORD=your_secure_password
 ```
 
 For Stripe and PayPal integration, add your API keys:
@@ -62,34 +62,60 @@ PAYPAL_CLIENT_ID=your_paypal_client_id
 PAYPAL_SECRET=your_paypal_secret
 ```
 
-### 4. Create the Database
+### 4. Create the PostgreSQL Database and User
 
 ```bash
-# For MySQL
-mysql -u root -p
-CREATE DATABASE ventlyx_db;
-exit;
+# Login to PostgreSQL as postgres user
+sudo -u postgres psql
 
-# For PostgreSQL
-psql -U postgres
+# Create the database
 CREATE DATABASE ventlyx_db;
+
+# Create a user with a secure password
+CREATE USER ventlyx_user WITH PASSWORD 'your_secure_password';
+
+# Grant privileges to the user on the database
+GRANT ALL PRIVILEGES ON DATABASE ventlyx_db TO ventlyx_user;
+
+# Grant schema privileges
+\c ventlyx_db
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO ventlyx_user;
+GRANT ALL ON SCHEMA public TO ventlyx_user;
+
+# Exit PostgreSQL
 \q
 ```
 
-### 5. Run Migrations and Seed the Database
+### 5. PostgreSQL Authentication Configuration (Optional)
+
+If you encounter authentication issues, you may need to modify the PostgreSQL authentication method in the pg_hba.conf file:
+
+```bash
+# Find the PostgreSQL configuration file
+sudo find /etc/postgresql -name "pg_hba.conf"
+
+# Edit the file (replace with your actual path)
+sudo nano /etc/postgresql/[version]/main/pg_hba.conf
+
+# Change the authentication method for local connections from 'scram-sha-256' to 'md5'
+# Then restart PostgreSQL
+sudo systemctl restart postgresql
+```
+
+### 6. Run Migrations and Seed the Database
 
 ```bash
 php artisan migrate
 php artisan db:seed
 ```
 
-### 6. Storage Link
+### 7. Storage Link
 
 ```bash
 php artisan storage:link
 ```
 
-### 7. Start the Laravel Development Server
+### 8. Start the Laravel Development Server
 
 ```bash
 php artisan serve
@@ -210,6 +236,7 @@ Make sure all required environment variables are set in your production environm
 
 - "No application encryption key has been specified." - Run `php artisan key:generate`
 - Database connection issues - Check your database credentials and connection in `.env`
+- PostgreSQL authentication errors - Verify authentication method in pg_hba.conf (may need to change from scram-sha-256 to md5)
 - Permission issues - Check file permissions on storage and bootstrap/cache
 
 ### Common Frontend Issues
@@ -222,5 +249,6 @@ Make sure all required environment variables are set in your production environm
 
 - [Laravel Documentation](https://laravel.com/docs)
 - [Vue.js Documentation](https://vuejs.org/guide/introduction.html)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
 - [Tailwind CSS Documentation](https://tailwindcss.com/docs)
 - [Pinia Documentation](https://pinia.vuejs.org/)
