@@ -8,6 +8,10 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Illuminate\Support\Facades\Log;
+use App\Exceptions\Api\ApiException;
+use App\Exceptions\Api\PaymentException;
 use Stripe\Exception\CardException;
 use Stripe\Exception\InvalidRequestException;
 use Throwable;
@@ -30,6 +34,20 @@ class Handler extends ExceptionHandler
      */
     public function register(): void
     {
+        // Handle API base exception - this should come first as more specific exceptions extend this
+        $this->renderable(function (ApiException $e, $request) {
+            if ($request->is('api/*')) {
+                return $e->render();
+            }
+        });
+
+        // Handle payment exceptions
+        $this->renderable(function (PaymentException $e, $request) {
+            if ($request->is('api/*')) {
+                return $e->render();
+            }
+        });
+
         $this->renderable(function (AuthenticationException $e, $request) {
             if ($request->is('api/*')) {
                 return response()->json([
@@ -97,10 +115,14 @@ class Handler extends ExceptionHandler
 
         $this->renderable(function (Throwable $e, $request) {
             if ($request->is('api/*')) {
-                $status = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
-                
+                // Determine status code properly, handling HttpExceptionInterface
+                $status = 500;
+                if ($e instanceof HttpExceptionInterface) {
+                    $status = $e->getStatusCode();
+                }
+
                 if ($status === 500) {
-                    \Log::error('Unhandled exception: ' . $e->getMessage(), [
+                    Log::error('Unhandled exception: ' . $e->getMessage(), [
                         'exception' => get_class($e),
                         'file' => $e->getFile(),
                         'line' => $e->getLine(),

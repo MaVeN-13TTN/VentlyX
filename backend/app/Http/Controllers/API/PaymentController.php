@@ -92,7 +92,6 @@ class PaymentController extends Controller
                 'message' => 'Payment processed successfully',
                 'payment' => $payment->load('booking'),
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -139,8 +138,76 @@ class PaymentController extends Controller
      */
     private function processPayPalPayment(Payment $payment, string $paymentToken)
     {
-        // TODO: Implement PayPal payment processing
-        throw PaymentException::paymentProviderError('PayPal', 'PayPal integration not implemented yet');
+        // Initialize PayPal client
+        $clientId = config('services.paypal.client_id');
+        $clientSecret = config('services.paypal.client_secret');
+        $isSandbox = config('services.paypal.sandbox', true);
+
+        $apiBase = $isSandbox
+            ? 'https://api-m.sandbox.paypal.com'
+            : 'https://api-m.paypal.com';
+
+        // Get OAuth token
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $apiBase . '/v1/oauth2/token');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, "grant_type=client_credentials");
+        curl_setopt($ch, CURLOPT_USERPWD, $clientId . ":" . $clientSecret);
+
+        $headers = array();
+        $headers[] = 'Accept: application/json';
+        $headers[] = 'Accept-Language: en_US';
+        $headers[] = 'Content-Type: application/x-www-form-urlencoded';
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+        $result = curl_exec($ch);
+        if (curl_errno($ch)) {
+            throw PaymentException::paymentProviderError('PayPal', curl_error($ch));
+        }
+        $authResponse = json_decode($result);
+        curl_close($ch);
+
+        $accessToken = $authResponse->access_token;
+
+        // Capture payment with token
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $apiBase . '/v2/checkout/orders/' . $paymentToken . '/capture');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_POST, 1);
+
+        $headers = array();
+        $headers[] = 'Content-Type: application/json';
+        $headers[] = 'Authorization: Bearer ' . $accessToken;
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+        $result = curl_exec($ch);
+        if (curl_errno($ch)) {
+            throw PaymentException::paymentProviderError('PayPal', curl_error($ch));
+        }
+        $response = json_decode($result);
+        curl_close($ch);
+
+        if ($response->status === 'COMPLETED') {
+            return [
+                'status' => 'paid',
+                'payment_id' => $response->id,
+                'details' => [
+                    'payer_id' => $response->payer->payer_id ?? null,
+                    'payer_email' => $response->payer->email_address ?? null,
+                    'transaction_id' => $response->purchase_units[0]->payments->captures[0]->id ?? null
+                ]
+            ];
+        } else {
+            return [
+                'status' => 'failed',
+                'payment_id' => $response->id ?? null,
+                'details' => [
+                    'error_message' => 'PayPal payment capture failed',
+                    'payment_status' => $response->status ?? 'UNKNOWN',
+                ]
+            ];
+        }
     }
 
     /**
@@ -205,7 +272,6 @@ class PaymentController extends Controller
                 'message' => 'Refund processed successfully',
                 'payment' => $payment->load('booking'),
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
 

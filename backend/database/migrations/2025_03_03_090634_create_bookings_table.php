@@ -23,6 +23,12 @@ return new class extends Migration
             $table->string('qr_code')->nullable();
             $table->timestamp('checked_in_at')->nullable();
             $table->timestamps();
+
+            // Add composite and single-column indexes for common query patterns
+            $table->index(['user_id', 'status']); // For listing user's bookings by status
+            $table->index(['event_id', 'status']); // For counting event's bookings by status
+            $table->index('payment_status'); // For filtering by payment status
+            $table->index('checked_in_at'); // For attendance reporting
         });
     }
 

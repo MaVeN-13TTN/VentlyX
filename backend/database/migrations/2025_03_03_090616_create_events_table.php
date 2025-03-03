@@ -25,6 +25,13 @@ return new class extends Migration
             $table->boolean('featured')->default(false);
             $table->json('additional_info')->nullable();
             $table->timestamps();
+
+            // Add indexes for commonly searched/filtered fields
+            $table->index('status');
+            $table->index('featured');
+            $table->index('start_time');
+            $table->index('end_time');
+            $table->index('location');
         });
     }
 
