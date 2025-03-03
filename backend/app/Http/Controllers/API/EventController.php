@@ -9,7 +9,8 @@ use App\Http\Requests\Event\EventImageRequest;
 use App\Models\Event;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Intervention\Image\Facades\Image;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver;
 
 class EventController extends Controller
 {
@@ -19,40 +20,40 @@ class EventController extends Controller
     public function index(Request $request)
     {
         $query = Event::query();
-        
+
         if ($request->has('status')) {
             $query->where('status', $request->status);
         } else {
             $query->where('status', 'published');
         }
-        
+
         if ($request->has('featured') && $request->featured) {
             $query->where('featured', true);
         }
-        
+
         if ($request->has('start_date')) {
             $query->where('start_time', '>=', $request->start_date);
         }
-        
+
         if ($request->has('end_date')) {
             $query->where('end_time', '<=', $request->end_date);
         }
-        
+
         if ($request->has('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('title', 'LIKE', "%{$search}%")
-                  ->orWhere('description', 'LIKE', "%{$search}%")
-                  ->orWhere('location', 'LIKE', "%{$search}%");
+                    ->orWhere('description', 'LIKE', "%{$search}%")
+                    ->orWhere('location', 'LIKE', "%{$search}%");
             });
         }
-        
+
         if ($request->has('with_ticket_types') && $request->with_ticket_types) {
             $query->with('ticketTypes');
         }
-        
+
         $perPage = $request->input('per_page', 10);
-        
+
         return response()->json([
             'events' => $query->paginate($perPage),
         ]);
@@ -64,16 +65,16 @@ class EventController extends Controller
     public function store(StoreEventRequest $request)
     {
         $validated = $request->validated();
-        
+
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('events', 'public');
             $validated['image_url'] = Storage::url($path);
         }
-        
+
         $validated['organizer_id'] = $request->user()->id;
-        
+
         $event = Event::create($validated);
-        
+
         return response()->json([
             'message' => 'Event created successfully',
             'event' => $event
@@ -86,7 +87,7 @@ class EventController extends Controller
     public function show(string $id)
     {
         $event = Event::with(['ticketTypes', 'organizer:id,name,email'])->findOrFail($id);
-        
+
         return response()->json([
             'event' => $event
         ]);
@@ -99,18 +100,18 @@ class EventController extends Controller
     {
         $event = Event::findOrFail($id);
         $validated = $request->validated();
-        
+
         if ($request->hasFile('image')) {
             if ($event->image_url && Storage::exists('public/' . str_replace('/storage/', '', $event->image_url))) {
                 Storage::delete('public/' . str_replace('/storage/', '', $event->image_url));
             }
-            
+
             $path = $request->file('image')->store('events', 'public');
             $validated['image_url'] = Storage::url($path);
         }
-        
+
         $event->update($validated);
-        
+
         return response()->json([
             'message' => 'Event updated successfully',
             'event' => $event
@@ -123,19 +124,19 @@ class EventController extends Controller
     public function destroy(Request $request, string $id)
     {
         $event = Event::findOrFail($id);
-        
+
         if ($request->user()->id !== $event->organizer_id && !$request->user()->hasRole('Admin')) {
             return response()->json([
                 'message' => 'Unauthorized'
             ], 403);
         }
-        
+
         if ($event->image_url && Storage::exists('public/' . str_replace('/storage/', '', $event->image_url))) {
             Storage::delete('public/' . str_replace('/storage/', '', $event->image_url));
         }
-        
+
         $event->delete();
-        
+
         return response()->json([
             'message' => 'Event deleted successfully'
         ]);
@@ -147,8 +148,8 @@ class EventController extends Controller
     public function myEvents(Request $request)
     {
         $events = Event::where('organizer_id', $request->user()->id)
-                       ->paginate($request->input('per_page', 10));
-        
+            ->paginate($request->input('per_page', 10));
+
         return response()->json([
             'events' => $events
         ]);
@@ -164,11 +165,11 @@ class EventController extends Controller
                 'message' => 'Unauthorized'
             ], 403);
         }
-        
+
         $event = Event::findOrFail($id);
         $event->featured = !$event->featured;
         $event->save();
-        
+
         return response()->json([
             'message' => 'Event featured status updated',
             'featured' => $event->featured
@@ -188,33 +189,27 @@ class EventController extends Controller
             Storage::delete('public/' . str_replace('/storage/', '', $event->image_url));
         }
 
-        // Process and optimize the image
-        $processedImage = Image::make($image);
+        // Process and optimize the image using Intervention Image v3
+        $manager = new ImageManager(new Driver());
+        $processedImage = $manager->read($image);
 
         // Resize if larger than 1200px width while maintaining aspect ratio
         if ($processedImage->width() > 1200) {
-            $processedImage->resize(1200, null, function ($constraint) {
-                $constraint->aspectRatio();
-                $constraint->upsize();
-            });
+            $processedImage->resize(1200);
         }
-
-        // Optimize image quality
-        $processedImage->encode(null, 85); // 85% quality
 
         // Generate unique filename
         $filename = 'events/' . uniqid() . '_' . time() . '.' . $image->getClientOriginalExtension();
 
-        // Store the processed image
-        Storage::put('public/' . $filename, $processedImage->stream());
+        // Store the processed image with 85% quality
+        Storage::put('public/' . $filename, $processedImage->toJpeg(85));
 
         // Update event with new image URL
         $event->update([
             'image_url' => Storage::url($filename)
         ]);
 
-        return response()->json([
-            'message' => 'Event image uploaded successfully',
+        return $this->successResponse('Event image uploaded successfully', [
             'image_url' => $event->image_url
         ]);
     }
