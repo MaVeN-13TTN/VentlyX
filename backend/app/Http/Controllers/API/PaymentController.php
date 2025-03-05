@@ -312,7 +312,87 @@ class PaymentController extends Controller
      */
     private function processPayPalRefund(Payment $payment, ?float $amount = null, ?string $reason = null)
     {
-        // TODO: Implement PayPal refund processing
-        throw PaymentException::paymentProviderError('PayPal', 'PayPal refund integration not implemented yet');
+        // Initialize PayPal client
+        $clientId = config('services.paypal.client_id');
+        $clientSecret = config('services.paypal.client_secret');
+        $isSandbox = config('services.paypal.sandbox', true);
+        $apiBase = $isSandbox
+            ? 'https://api-m.sandbox.paypal.com'
+            : 'https://api-m.paypal.com';
+
+        // Get transaction ID from original payment details
+        $transactionId = $payment->transaction_details['transaction_id'] ??
+            ($payment->transaction_details['details']['transaction_id'] ?? null);
+
+        if (!$transactionId) {
+            throw PaymentException::paymentProviderError(
+                'PayPal',
+                'Cannot process refund: Original transaction ID not found'
+            );
+        }
+
+        // Get OAuth token
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $apiBase . '/v1/oauth2/token');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, "grant_type=client_credentials");
+        curl_setopt($ch, CURLOPT_USERPWD, $clientId . ":" . $clientSecret);
+        $headers = array();
+        $headers[] = 'Accept: application/json';
+        $headers[] = 'Accept-Language: en_US';
+        $headers[] = 'Content-Type: application/x-www-form-urlencoded';
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        $result = curl_exec($ch);
+
+        if (curl_errno($ch)) {
+            throw PaymentException::paymentProviderError('PayPal', curl_error($ch));
+        }
+
+        $authResponse = json_decode($result);
+        curl_close($ch);
+        $accessToken = $authResponse->access_token;
+
+        // Prepare refund payload
+        $refundPayload = [
+            'amount' => [
+                'value' => $amount ?? $payment->amount,
+                'currency_code' => $payment->currency
+            ],
+            'note_to_payer' => $reason ?? 'Refund for cancelled booking'
+        ];
+
+        // Process the refund
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $apiBase . '/v2/payments/captures/' . $transactionId . '/refund');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($refundPayload));
+        $headers = array();
+        $headers[] = 'Content-Type: application/json';
+        $headers[] = 'Authorization: Bearer ' . $accessToken;
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        $result = curl_exec($ch);
+
+        if (curl_errno($ch)) {
+            throw PaymentException::paymentProviderError('PayPal', curl_error($ch));
+        }
+
+        $response = json_decode($result);
+        curl_close($ch);
+
+        if (!isset($response->id)) {
+            throw PaymentException::paymentProviderError(
+                'PayPal',
+                'Refund failed: ' . ($response->message ?? 'Unknown error')
+            );
+        }
+
+        return [
+            'refund_id' => $response->id,
+            'amount' => $response->amount->value ?? $amount ?? $payment->amount,
+            'status' => $response->status,
+            'create_time' => $response->create_time ?? now()->toIso8601String()
+        ];
     }
 }

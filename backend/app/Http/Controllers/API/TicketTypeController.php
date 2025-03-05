@@ -7,8 +7,8 @@ use App\Http\Requests\TicketType\StoreTicketTypeRequest;
 use App\Http\Requests\TicketType\UpdateTicketTypeRequest;
 use App\Models\Event;
 use App\Models\TicketType;
+use App\Exceptions\Api\TicketException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 class TicketTypeController extends Controller
 {
@@ -19,7 +19,7 @@ class TicketTypeController extends Controller
     {
         $event = Event::findOrFail($eventId);
         $ticketTypes = $event->ticketTypes;
-        
+
         return response()->json([
             'ticket_types' => $ticketTypes
         ]);
@@ -32,10 +32,10 @@ class TicketTypeController extends Controller
     {
         $event = Event::findOrFail($eventId);
         $validated = $request->validated();
-        
+
         // Create the ticket type
         $ticketType = $event->ticketTypes()->create($validated);
-        
+
         return response()->json([
             'message' => 'Ticket type created successfully',
             'ticket_type' => $ticketType
@@ -47,11 +47,10 @@ class TicketTypeController extends Controller
      */
     public function show(string $eventId, string $id)
     {
-        $event = Event::findOrFail($eventId);
         $ticketType = TicketType::where('event_id', $eventId)
-                                ->where('id', $id)
-                                ->firstOrFail();
-        
+            ->where('id', $id)
+            ->firstOrFail();
+
         return response()->json([
             'ticket_type' => $ticketType
         ]);
@@ -63,12 +62,23 @@ class TicketTypeController extends Controller
     public function update(UpdateTicketTypeRequest $request, string $eventId, string $id)
     {
         $ticketType = TicketType::where('event_id', $eventId)
-                                ->where('id', $id)
-                                ->firstOrFail();
-        
+            ->where('id', $id)
+            ->firstOrFail();
+
+        // Check if ticket type can be modified
+        if (!$ticketType->canBeModified()) {
+            throw TicketException::hasActiveBookings($ticketType->name);
+        }
+
         $validated = $request->validated();
+
+        // Check if price change is allowed (no existing bookings)
+        if (isset($validated['price']) && $validated['price'] !== $ticketType->price && $ticketType->bookings()->exists()) {
+            throw TicketException::invalidPriceChange($ticketType->name);
+        }
+
         $ticketType->update($validated);
-        
+
         return response()->json([
             'message' => 'Ticket type updated successfully',
             'ticket_type' => $ticketType
@@ -82,16 +92,16 @@ class TicketTypeController extends Controller
     {
         $event = Event::findOrFail($eventId);
         $ticketType = TicketType::where('event_id', $eventId)
-                                ->where('id', $id)
-                                ->firstOrFail();
-        
+            ->where('id', $id)
+            ->firstOrFail();
+
         // Check if user is authorized to delete ticket types
         if ($request->user()->id !== $event->organizer_id && !$request->user()->hasRole('Admin')) {
             return response()->json([
                 'message' => 'Unauthorized'
             ], 403);
         }
-        
+
         // Check if there are any bookings using this ticket type
         $bookingsCount = $ticketType->bookings()->count();
         if ($bookingsCount > 0) {
@@ -100,14 +110,14 @@ class TicketTypeController extends Controller
                 'bookings_count' => $bookingsCount
             ], 400);
         }
-        
+
         $ticketType->delete();
-        
+
         return response()->json([
             'message' => 'Ticket type deleted successfully'
         ]);
     }
-    
+
     /**
      * Check availability of ticket types for an event.
      */
@@ -115,17 +125,17 @@ class TicketTypeController extends Controller
     {
         $event = Event::findOrFail($eventId);
         $ticketTypes = $event->ticketTypes;
-        
-        $availability = $ticketTypes->map(function($ticketType) {
+
+        $availability = $ticketTypes->map(function ($ticketType) {
             return [
                 'id' => $ticketType->id,
                 'name' => $ticketType->name,
-                'available' => $ticketType->is_available,
-                'remaining' => $ticketType->tickets_remaining,
+                'available' => $ticketType->isAvailable(),
+                'remaining' => $ticketType->getTicketsRemaining(),
                 'price' => $ticketType->price,
             ];
         });
-        
+
         return response()->json([
             'availability' => $availability
         ]);

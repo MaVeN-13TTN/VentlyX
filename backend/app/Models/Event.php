@@ -101,7 +101,8 @@ class Event extends Model
             'published',
             'cancelled',
             'postponed',
-            'ended'
+            'ended',
+            'archived'
         ];
     }
 
@@ -109,10 +110,11 @@ class Event extends Model
     {
         return [
             'draft' => ['published'],
-            'published' => ['cancelled', 'postponed', 'ended'],
-            'cancelled' => [],
-            'postponed' => ['published', 'cancelled'],
-            'ended' => []
+            'published' => ['cancelled', 'postponed', 'ended', 'archived'],
+            'cancelled' => ['archived'],
+            'postponed' => ['published', 'cancelled', 'archived'],
+            'ended' => ['archived'],
+            'archived' => []
         ];
     }
 
@@ -134,7 +136,7 @@ class Event extends Model
         return $this->getTicketsRemaining() > 0;
     }
 
-    public function isPublished(): bool 
+    public function isPublished(): bool
     {
         return $this->status === 'published';
     }
@@ -167,10 +169,10 @@ class Event extends Model
     public function canBeModified(): bool
     {
         return in_array($this->status, ['draft', 'published']) &&
-               !$this->hasStarted() &&
-               !$this->bookings()
-                    ->whereIn('status', ['confirmed', 'pending'])
-                    ->exists();
+            !$this->hasStarted() &&
+            !$this->bookings()
+                ->whereIn('status', ['confirmed', 'pending'])
+                ->exists();
     }
 
     public function canBeCancelled(): bool

@@ -3,6 +3,8 @@
 namespace App\Http\Requests\TicketType;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Models\Event;
+use App\Models\TicketType;
 
 class UpdateTicketTypeRequest extends FormRequest
 {
@@ -12,9 +14,19 @@ class UpdateTicketTypeRequest extends FormRequest
     public function authorize(): bool
     {
         $eventId = $this->route('eventId');
-        $event = \App\Models\Event::findOrFail($eventId);
-        return $this->user()->id === $event->organizer_id || 
-               $this->user()->hasRole('Admin');
+        $ticketTypeId = $this->route('id');
+
+        $event = Event::findOrFail($eventId);
+        $ticketType = TicketType::findOrFail($ticketTypeId);
+
+        // Check if ticket type belongs to the event
+        if ($ticketType->event_id != $eventId) {
+            return false;
+        }
+
+        // Check if user is event organizer or admin
+        return $this->user()->id === $event->organizer_id ||
+            $this->user()->hasRole('Admin');
     }
 
     /**
@@ -27,11 +39,12 @@ class UpdateTicketTypeRequest extends FormRequest
         return [
             'name' => ['nullable', 'string', 'max:255'],
             'price' => ['nullable', 'numeric', 'min:0'],
-            'quantity_available' => ['nullable', 'integer', 'min:1'],
+            'quantity' => ['nullable', 'integer', 'min:1'],
             'description' => ['nullable', 'string'],
             'max_per_order' => ['nullable', 'integer', 'min:1'],
             'sales_start_date' => ['nullable', 'date'],
             'sales_end_date' => ['nullable', 'date', 'after:sales_start_date'],
+            'status' => ['nullable', 'string', 'in:draft,published,archived']
         ];
     }
 
@@ -46,9 +59,10 @@ class UpdateTicketTypeRequest extends FormRequest
             'name.max' => 'Ticket type name cannot exceed 255 characters',
             'price.numeric' => 'Price must be a number',
             'price.min' => 'Price cannot be negative',
-            'quantity_available.min' => 'Available quantity must be at least 1',
+            'quantity.min' => 'Available quantity must be at least 1',
             'max_per_order.min' => 'Maximum tickets per order must be at least 1',
             'sales_end_date.after' => 'Sales end date must be after sales start date',
+            'status.in' => 'Invalid ticket type status'
         ];
     }
 }

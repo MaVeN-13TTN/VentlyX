@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Event;
 
+use App\Models\Event;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateEventRequest extends FormRequest
@@ -11,9 +12,11 @@ class UpdateEventRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        $event = $this->route('id');
-        return $this->user()->id === $event->organizer_id || 
-               $this->user()->hasRole('Admin');
+        $eventId = $this->route('id');
+        $event = Event::findOrFail($eventId);
+
+        return $this->user()->id === $event->organizer_id ||
+            $this->user()->hasRole('Admin');
     }
 
     /**

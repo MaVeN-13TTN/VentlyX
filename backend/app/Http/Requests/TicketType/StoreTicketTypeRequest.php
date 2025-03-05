@@ -13,8 +13,8 @@ class StoreTicketTypeRequest extends FormRequest
     {
         $eventId = $this->route('eventId');
         $event = \App\Models\Event::findOrFail($eventId);
-        return $this->user()->id === $event->organizer_id || 
-               $this->user()->hasRole('Admin');
+        return $this->user()->id === $event->organizer_id ||
+            $this->user()->hasRole('Admin');
     }
 
     /**
@@ -27,11 +27,12 @@ class StoreTicketTypeRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'price' => ['required', 'numeric', 'min:0'],
-            'quantity_available' => ['required', 'integer', 'min:1'],
+            'quantity' => ['required', 'integer', 'min:1'],
             'description' => ['nullable', 'string'],
             'max_per_order' => ['nullable', 'integer', 'min:1'],
             'sales_start_date' => ['nullable', 'date'],
             'sales_end_date' => ['nullable', 'date', 'after:sales_start_date'],
+            'status' => ['nullable', 'string', 'in:draft,published,archived']
         ];
     }
 
@@ -48,10 +49,11 @@ class StoreTicketTypeRequest extends FormRequest
             'price.required' => 'Price is required',
             'price.numeric' => 'Price must be a number',
             'price.min' => 'Price cannot be negative',
-            'quantity_available.required' => 'Available quantity is required',
-            'quantity_available.min' => 'Available quantity must be at least 1',
+            'quantity.required' => 'Available quantity is required',
+            'quantity.min' => 'Available quantity must be at least 1',
             'max_per_order.min' => 'Maximum tickets per order must be at least 1',
             'sales_end_date.after' => 'Sales end date must be after sales start date',
+            'status.in' => 'Invalid ticket type status'
         ];
     }
 }

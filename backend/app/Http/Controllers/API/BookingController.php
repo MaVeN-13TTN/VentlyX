@@ -41,29 +41,9 @@ class BookingController extends Controller
         $ticketType = TicketType::findOrFail($validated['ticket_type_id']);
         $event = Event::findOrFail($validated['event_id']);
 
-        // Check if event has ended
-        if (Carbon::parse($event->end_time)->isPast()) {
-            throw BookingException::eventEnded();
-        }
-
-        // Check ticket sales period
-        if ($ticketType->sales_end_date && Carbon::parse($ticketType->sales_end_date)->isPast()) {
-            throw BookingException::bookingClosed();
-        }
-
-        // Check ticket availability
-        if ($ticketType->tickets_remaining < $validated['quantity']) {
-            throw BookingException::insufficientTickets(
-                $ticketType->name,
-                $ticketType->tickets_remaining,
-                $validated['quantity']
-            );
-        }
-
-        // Check max tickets per order
-        if ($ticketType->max_per_order && $validated['quantity'] > $ticketType->max_per_order) {
-            throw BookingException::exceedsMaxPerOrder($ticketType->name, $ticketType->max_per_order);
-        }
+        $this->validateEventNotEnded($event);
+        $this->validateTicketSalesOpen($ticketType);
+        $this->validateTicketAvailability($ticketType, $validated['quantity']);
 
         try {
             DB::beginTransaction();
@@ -88,7 +68,6 @@ class BookingController extends Controller
                 'message' => 'Booking created successfully',
                 'booking' => $booking->load(['event', 'ticketType'])
             ], 201);
-
         } catch (\Exception $e) {
             DB::rollBack();
             throw BookingException::serverError('Error creating booking: ' . $e->getMessage());
@@ -116,7 +95,7 @@ class BookingController extends Controller
     public function cancel(CancelBookingRequest $request, string $id)
     {
         $booking = Booking::findOrFail($id);
-        
+
         // Check if booking can be cancelled
         if ($booking->status === 'cancelled') {
             throw BookingException::cancellationNotAllowed('Booking is already cancelled');
@@ -147,7 +126,7 @@ class BookingController extends Controller
     public function checkIn(CheckInBookingRequest $request, string $id)
     {
         $booking = Booking::findOrFail($id);
-        
+
         if ($booking->checked_in_at) {
             throw BookingException::alreadyCheckedIn();
         }
@@ -167,5 +146,53 @@ class BookingController extends Controller
             'message' => 'Booking checked in successfully',
             'booking' => $booking
         ]);
+    }
+
+    /**
+     * Helper method for testing: Validate that an event has not ended
+     * @throws BookingException
+     */
+    protected function validateEventNotEnded(Event $event): void
+    {
+        // Check if event has ended
+        if (Carbon::parse($event->end_time)->isPast()) {
+            throw BookingException::eventEnded();
+        }
+    }
+
+    /**
+     * Helper method for testing: Validate that ticket sales are open
+     * @throws BookingException
+     */
+    protected function validateTicketSalesOpen(TicketType $ticketType): void
+    {
+        // Check ticket sales period
+        if ($ticketType->sales_end_date && Carbon::parse($ticketType->sales_end_date)->isPast()) {
+            throw BookingException::bookingClosed();
+        }
+    }
+
+    /**
+     * Helper method for testing: Validate ticket availability
+     * @throws BookingException
+     */
+    protected function validateTicketAvailability(TicketType $ticketType, int $quantity): void
+    {
+        // Get tickets remaining, accounting for potential null value
+        $ticketsRemaining = $ticketType->getTicketsRemaining();
+
+        // Check ticket availability
+        if ($ticketsRemaining < $quantity) {
+            throw BookingException::insufficientTickets(
+                $ticketType->name,
+                $ticketsRemaining,
+                $quantity
+            );
+        }
+
+        // Check max tickets per order
+        if ($ticketType->max_per_order && $quantity > $ticketType->max_per_order) {
+            throw BookingException::exceedsMaxPerOrder($ticketType->name, $ticketType->max_per_order);
+        }
     }
 }

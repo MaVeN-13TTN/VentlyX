@@ -54,8 +54,16 @@ class EventController extends Controller
 
         $perPage = $request->input('per_page', 10);
 
+        $events = $query->paginate($perPage);
+
         return response()->json([
-            'events' => $query->paginate($perPage),
+            'data' => $events->items(),
+            'meta' => [
+                'current_page' => $events->currentPage(),
+                'last_page' => $events->lastPage(),
+                'per_page' => $events->perPage(),
+                'total' => $events->total()
+            ]
         ]);
     }
 
@@ -72,7 +80,6 @@ class EventController extends Controller
         }
 
         $validated['organizer_id'] = $request->user()->id;
-
         $event = Event::create($validated);
 
         return response()->json([
@@ -89,7 +96,7 @@ class EventController extends Controller
         $event = Event::with(['ticketTypes', 'organizer:id,name,email'])->findOrFail($id);
 
         return response()->json([
-            'event' => $event
+            'data' => $event
         ]);
     }
 
@@ -105,7 +112,6 @@ class EventController extends Controller
             if ($event->image_url && Storage::exists('public/' . str_replace('/storage/', '', $event->image_url))) {
                 Storage::delete('public/' . str_replace('/storage/', '', $event->image_url));
             }
-
             $path = $request->file('image')->store('events', 'public');
             $validated['image_url'] = Storage::url($path);
         }
@@ -151,7 +157,13 @@ class EventController extends Controller
             ->paginate($request->input('per_page', 10));
 
         return response()->json([
-            'events' => $events
+            'data' => $events->items(),
+            'meta' => [
+                'current_page' => $events->currentPage(),
+                'last_page' => $events->lastPage(),
+                'per_page' => $events->perPage(),
+                'total' => $events->total()
+            ]
         ]);
     }
 
@@ -171,7 +183,7 @@ class EventController extends Controller
         $event->save();
 
         return response()->json([
-            'message' => 'Event featured status updated',
+            'message' => 'Event featured status updated successfully',
             'featured' => $event->featured
         ]);
     }
@@ -209,7 +221,8 @@ class EventController extends Controller
             'image_url' => Storage::url($filename)
         ]);
 
-        return $this->successResponse('Event image uploaded successfully', [
+        return response()->json([
+            'message' => 'Event image uploaded successfully',
             'image_url' => $event->image_url
         ]);
     }

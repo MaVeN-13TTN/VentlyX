@@ -9,26 +9,16 @@ class RoleSeeder extends Seeder
 {
     /**
      * Run the database seeds.
+     *
+     * @return void
      */
-    public function run(): void
+    public function run()
     {
-        $roles = [
-            [
-                'name' => 'Admin',
-                'description' => 'System administrator with full access'
-            ],
-            [
-                'name' => 'Organizer',
-                'description' => 'Event organizer who can create and manage events'
-            ],
-            [
-                'name' => 'User',
-                'description' => 'Regular user who can book events'
-            ]
-        ];
+        // Create basic roles needed for the application
+        $roles = ['Admin', 'Organizer', 'User'];
 
         foreach ($roles as $role) {
-            Role::firstOrCreate(['name' => $role['name']], $role);
+            Role::firstOrCreate(['name' => $role]);
         }
     }
 }
