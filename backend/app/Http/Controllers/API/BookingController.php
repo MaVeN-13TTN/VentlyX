@@ -59,6 +59,9 @@ class BookingController extends Controller
                 'payment_status' => 'pending'
             ]);
 
+            // Update tickets remaining
+            $ticketType->decrement('tickets_remaining', $validated['quantity']);
+
             // Generate QR code
             $booking->generateQrCode();
 

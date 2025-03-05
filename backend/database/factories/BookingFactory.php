@@ -38,7 +38,7 @@ class BookingFactory extends Factory
             'total_price' => $quantity * $ticketType->price,
             'status' => 'pending',
             'payment_status' => 'pending',
-            'qr_code' => null,
+            'qr_code_url' => null,
             'checked_in_at' => null,
         ];
     }

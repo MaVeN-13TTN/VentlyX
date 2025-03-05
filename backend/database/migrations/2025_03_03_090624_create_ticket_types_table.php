@@ -21,6 +21,8 @@ return new class extends Migration
             $table->integer('max_per_order')->nullable();
             $table->dateTime('sales_start_date')->nullable();
             $table->dateTime('sales_end_date')->nullable();
+            $table->boolean('is_available')->default(true);
+            $table->integer('tickets_remaining')->default(0);
             $table->timestamps();
         });
     }

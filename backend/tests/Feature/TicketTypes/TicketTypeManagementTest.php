@@ -84,10 +84,13 @@ class TicketTypeManagementTest extends ApiTestCase
     public function test_users_can_check_ticket_availability()
     {
         $event = Event::factory()->published()->create();
+        $quantity = 50;
         $ticketType = TicketType::factory()->create([
             'event_id' => $event->id,
-            'quantity' => 50,
-            'name' => 'Regular Ticket'
+            'quantity' => $quantity,
+            'tickets_remaining' => $quantity,
+            'name' => 'Regular Ticket',
+            'status' => 'active'
         ]);
 
         $response = $this->getJson('/api/events/' . $event->id . '/ticket-types/availability');

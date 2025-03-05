@@ -20,7 +20,7 @@ return new class extends Migration
             $table->decimal('total_price', 10, 2);
             $table->enum('status', ['pending', 'confirmed', 'cancelled', 'refunded'])->default('pending');
             $table->enum('payment_status', ['pending', 'paid', 'failed', 'refunded'])->default('pending');
-            $table->string('qr_code')->nullable();
+            $table->string('qr_code_url')->nullable();
             $table->timestamp('checked_in_at')->nullable();
             $table->timestamps();
 

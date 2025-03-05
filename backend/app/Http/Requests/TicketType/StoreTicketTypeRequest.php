@@ -32,7 +32,7 @@ class StoreTicketTypeRequest extends FormRequest
             'max_per_order' => ['nullable', 'integer', 'min:1'],
             'sales_start_date' => ['nullable', 'date'],
             'sales_end_date' => ['nullable', 'date', 'after:sales_start_date'],
-            'status' => ['nullable', 'string', 'in:draft,published,archived']
+            'status' => ['nullable', 'string', 'in:draft,active,paused']
         ];
     }
 
@@ -49,8 +49,8 @@ class StoreTicketTypeRequest extends FormRequest
             'price.required' => 'Price is required',
             'price.numeric' => 'Price must be a number',
             'price.min' => 'Price cannot be negative',
-            'quantity.required' => 'Available quantity is required',
-            'quantity.min' => 'Available quantity must be at least 1',
+            'quantity.required' => 'Quantity is required',
+            'quantity.min' => 'Quantity must be at least 1',
             'max_per_order.min' => 'Maximum tickets per order must be at least 1',
             'sales_end_date.after' => 'Sales end date must be after sales start date',
             'status.in' => 'Invalid ticket type status'

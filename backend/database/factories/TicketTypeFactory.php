@@ -25,15 +25,20 @@ class TicketTypeFactory extends Factory
      */
     public function definition(): array
     {
+        $quantity = $this->faker->numberBetween(50, 500);
+
         return [
             'event_id' => Event::factory(),
             'name' => $this->faker->randomElement(['General Admission', 'VIP', 'Premium', 'Early Bird', 'Student', 'Group']),
             'description' => $this->faker->paragraph(1),
             'price' => $this->faker->randomFloat(2, 10, 300),
-            'quantity' => $this->faker->numberBetween(50, 500),
+            'quantity' => $quantity,
+            'tickets_remaining' => $quantity,
             'max_per_order' => $this->faker->numberBetween(4, 10),
             'sales_start_date' => now()->subDays(5),
             'sales_end_date' => now()->addDays(10),
+            'status' => 'active',
+            'is_available' => true
         ];
     }
 
@@ -44,6 +49,8 @@ class TicketTypeFactory extends Factory
     {
         return $this->state([
             'quantity' => 0,
+            'tickets_remaining' => 0,
+            'is_available' => false
         ]);
     }
 
@@ -54,6 +61,7 @@ class TicketTypeFactory extends Factory
     {
         return $this->state([
             'quantity' => $remaining,
+            'tickets_remaining' => $remaining
         ]);
     }
 
@@ -64,6 +72,7 @@ class TicketTypeFactory extends Factory
     {
         return $this->state([
             'sales_end_date' => now()->subDay(),
+            'is_available' => false
         ]);
     }
 }

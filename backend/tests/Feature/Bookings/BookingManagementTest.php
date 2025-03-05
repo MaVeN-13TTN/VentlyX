@@ -25,10 +25,6 @@ class BookingManagementTest extends ApiTestCase
 
     public function test_users_can_create_bookings()
     {
-        // Skip this specific test for now
-        // We've verified other booking functionality is working correctly
-        $this->markTestSkipped('Booking creation test skipped for now');
-
         // Create a user
         $user = User::factory()->create();
 
@@ -38,13 +34,17 @@ class BookingManagementTest extends ApiTestCase
             'end_time' => now()->addDays(10)->addHours(2)
         ]);
 
+        // Initialize both quantity and tickets_remaining
+        $quantity = 100;
         $ticketType = TicketType::factory()->create([
             'event_id' => $event->id,
-            'quantity' => 100,
+            'quantity' => $quantity,
+            'tickets_remaining' => $quantity,
             'price' => 50.00,
             'status' => 'active',
             'sales_start_date' => now()->subDay(),
-            'sales_end_date' => now()->addDays(5)
+            'sales_end_date' => now()->addDays(5),
+            'is_available' => true
         ]);
 
         $this->actingAs($user);
@@ -52,21 +52,26 @@ class BookingManagementTest extends ApiTestCase
         $bookingData = [
             'event_id' => $event->id,
             'ticket_type_id' => $ticketType->id,
-            'quantity' => 2,
-            'customer_name' => 'John Doe',
-            'customer_email' => 'john@example.com'
+            'quantity' => 2
         ];
 
         $response = $this->postJson('/api/bookings', $bookingData);
 
-        // For this test, we'll just verify that the request is processed
         $response->assertStatus(201);
 
-        // Check database for the created booking
+        // Verify the booking was created correctly
         $this->assertDatabaseHas('bookings', [
             'user_id' => $user->id,
-            'status' => 'pending'
+            'status' => 'pending',
+            'event_id' => $event->id,
+            'ticket_type_id' => $ticketType->id,
+            'quantity' => 2,
+            'total_price' => 100.00
         ]);
+
+        // Verify tickets_remaining was updated correctly
+        $updatedTicketType = TicketType::find($ticketType->id);
+        $this->assertEquals(98, $updatedTicketType->tickets_remaining);
     }
 
     // For these tests, we'll use a more direct approach to test the specific error conditions
@@ -117,9 +122,14 @@ class BookingManagementTest extends ApiTestCase
 
         // Create event with limited tickets
         $event = Event::factory()->published()->create();
+
+        // Set both quantity and tickets_remaining to 5
+        $quantity = 5;
         $ticketType = TicketType::factory()->create([
             'event_id' => $event->id,
-            'quantity' => 5
+            'quantity' => $quantity,
+            'tickets_remaining' => $quantity,
+            'status' => 'active'
         ]);
 
         $this->actingAs($user);
@@ -127,9 +137,7 @@ class BookingManagementTest extends ApiTestCase
         $bookingData = [
             'event_id' => $event->id,
             'ticket_type_id' => $ticketType->id,
-            'quantity' => 10, // More than available
-            'customer_name' => 'John Doe',
-            'customer_email' => 'john@example.com'
+            'quantity' => 10  // More than available
         ];
 
         $response = $this->postJson('/api/bookings', $bookingData);

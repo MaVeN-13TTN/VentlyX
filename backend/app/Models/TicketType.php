@@ -18,18 +18,22 @@ class TicketType extends Model
         'description',
         'price',
         'quantity',
+        'tickets_remaining',
         'status',
         'max_per_order',
         'sales_start_date',
-        'sales_end_date'
+        'sales_end_date',
+        'is_available'
     ];
 
     protected $casts = [
         'price' => 'float',
         'quantity' => 'integer',
+        'tickets_remaining' => 'integer',
         'max_per_order' => 'integer',
         'sales_start_date' => 'datetime',
-        'sales_end_date' => 'datetime'
+        'sales_end_date' => 'datetime',
+        'is_available' => 'boolean'
     ];
 
     public function event(): BelongsTo
@@ -68,28 +72,35 @@ class TicketType extends Model
 
     public function getTicketsRemaining(): int
     {
+        return $this->tickets_remaining;
+    }
+
+    public function updateTicketsRemaining(): void
+    {
         $soldTickets = $this->bookings()
             ->whereIn('status', ['confirmed', 'pending'])
             ->sum('quantity');
 
-        return max(0, $this->quantity - $soldTickets);
+        $this->tickets_remaining = max(0, $this->quantity - $soldTickets);
+        $this->save();
     }
 
     public function isAvailable(): bool
     {
         return $this->status === 'active' &&
-               $this->getTicketsRemaining() > 0 &&
-               now()->between(
-                   $this->sales_start_date ?? $this->event->start_time,
-                   $this->sales_end_date ?? $this->event->end_time
-               );
+            $this->is_available &&
+            $this->getTicketsRemaining() > 0 &&
+            now()->between(
+                $this->sales_start_date ?? $this->event->start_time,
+                $this->sales_end_date ?? $this->event->end_time
+            );
     }
 
     public function canBePurchased(int $quantity): bool
     {
         return $this->isAvailable() &&
-               $this->getTicketsRemaining() >= $quantity &&
-               (!$this->max_per_order || $quantity <= $this->max_per_order);
+            $this->getTicketsRemaining() >= $quantity &&
+            (!$this->max_per_order || $quantity <= $this->max_per_order);
     }
 
     public function isSoldOut(): bool
@@ -105,9 +116,9 @@ class TicketType extends Model
     public function canBeModified(): bool
     {
         return in_array($this->status, ['draft', 'active', 'paused']) &&
-               !$this->bookings()
-                    ->whereIn('status', ['confirmed', 'pending'])
-                    ->exists();
+            !$this->bookings()
+                ->whereIn('status', ['confirmed', 'pending'])
+                ->exists();
     }
 
     public function updateAvailability(): void
@@ -131,6 +142,13 @@ class TicketType extends Model
             if (!$ticketType->status) {
                 $ticketType->status = 'draft';
             }
+            if (!isset($ticketType->tickets_remaining)) {
+                $ticketType->tickets_remaining = $ticketType->quantity;
+            }
+        });
+
+        static::created(function (TicketType $ticketType) {
+            $ticketType->updateTicketsRemaining();
         });
 
         static::saved(function (TicketType $ticketType) {
