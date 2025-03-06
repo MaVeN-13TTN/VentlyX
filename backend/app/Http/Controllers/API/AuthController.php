@@ -5,11 +5,16 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Requests\Auth\ForgotPasswordRequest;
+use App\Http\Requests\Auth\ResetPasswordRequest;
 use App\Models\User;
 use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -22,7 +27,7 @@ class AuthController extends Controller
     public function register(RegisterRequest $request)
     {
         $validated = $request->validated();
-        
+
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
@@ -63,10 +68,10 @@ class AuthController extends Controller
         }
 
         $user = User::where('email', $validated['email'])->firstOrFail();
-        
+
         // Delete previous tokens
         $user->tokens()->delete();
-        
+
         // Create new token
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -104,5 +109,66 @@ class AuthController extends Controller
         return response()->json([
             'user' => $request->user()->load('roles'),
         ]);
+    }
+
+    /**
+     * Send password reset link to the given user.
+     *
+     * @param  \App\Http\Requests\Auth\ForgotPasswordRequest  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function forgotPassword(ForgotPasswordRequest $request)
+    {
+        $validated = $request->validated();
+
+        // Send the password reset link using Laravel's built-in Password Broker
+        $status = Password::sendResetLink(
+            ['email' => $validated['email']]
+        );
+
+        if ($status === Password::RESET_LINK_SENT) {
+            return response()->json([
+                'message' => 'Password reset link has been sent to your email address'
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Unable to send password reset link'
+        ], 400);
+    }
+
+    /**
+     * Reset user's password using the provided token.
+     *
+     * @param  \App\Http\Requests\Auth\ResetPasswordRequest  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function resetPassword(ResetPasswordRequest $request)
+    {
+        $validated = $request->validated();
+
+        // Reset the user's password using Laravel's built-in Password Broker
+        $status = Password::reset(
+            $validated,
+            function (User $user, string $password) {
+                $user->forceFill([
+                    'password' => Hash::make($password),
+                    'remember_token' => Str::random(60),
+                ])->save();
+
+                event(new PasswordReset($user));
+            }
+        );
+
+        if ($status === Password::PASSWORD_RESET) {
+            return response()->json([
+                'message' => 'Password has been successfully reset'
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Unable to reset password',
+            'errors' => ['token' => 'Invalid or expired token']
+        ], 400);
     }
 }

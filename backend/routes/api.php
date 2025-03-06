@@ -26,6 +26,10 @@ Route::post('/stripe/webhook', [StripeWebhookController::class, 'handleWebhook']
 Route::middleware('throttle:auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
+
+    // Password Reset Routes
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 });
 
 // Public event and ticket routes with caching
