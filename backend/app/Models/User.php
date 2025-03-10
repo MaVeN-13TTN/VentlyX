@@ -25,6 +25,10 @@ class User extends Authenticatable
         'password',
         'phone_number',
         'profile_picture',
+        'two_factor_enabled',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
+        'two_factor_confirmed_at'
     ];
 
     /**
@@ -35,6 +39,8 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_secret',
+        'two_factor_recovery_codes'
     ];
 
     /**
@@ -47,6 +53,9 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'two_factor_enabled' => 'boolean',
+            'two_factor_recovery_codes' => 'array',
+            'two_factor_confirmed_at' => 'datetime'
         ];
     }
 
@@ -91,5 +100,13 @@ class User extends Authenticatable
     public function hasRole($roleName)
     {
         return $this->roles->contains('name', $roleName);
+    }
+
+    /**
+     * Check if user requires two-factor authentication.
+     */
+    public function requiresTwoFactor(): bool
+    {
+        return $this->two_factor_enabled && $this->two_factor_confirmed_at;
     }
 }
