@@ -1,138 +1,95 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
-
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
-
 # VentlyX Backend
 
 ## Overview
 
-This is the backend component of the VentlyX application, built with Laravel. It provides RESTful API endpoints for the frontend to interact with, manages the database, and handles all business logic.
+The VentlyX backend powers our event management and ticketing platform, providing a robust foundation for seamless event experiences. This system handles everything from ticket sales to event check-ins, ensuring both event organizers and attendees have a smooth experience.
 
-## Technology Stack
+## Core Features
 
--   **PHP Framework**: Laravel 12.x
--   **Authentication**: Laravel Sanctum
--   **QR Code Generation**: Simple QR Code Package
--   **Payment Processing**: Stripe PHP SDK
--   **Database**: MySQL/PostgreSQL
+### For Event Attendees
 
-## Key Features Implemented
+-   **Smart Ticketing System**
 
--   User authentication and authorization
--   Event management system
--   Ticket booking and payment processing
--   QR code ticket generation
--   Admin dashboard and analytics
--   Role-based access control
+    -   Multiple ticket types (Individual, Group, VIP, VVIP)
+    -   Digital tickets with secure QR codes
+    -   Easy ticket transfers to friends and family
+    -   Booking history and digital receipt generation
 
-## Directory Structure
+-   **Flexible Payments**
 
--   `app/Models`: Contains database models (User, Event, Ticket, etc.)
--   `app/Http/Controllers`: Contains API controllers
--   `app/Http/Middleware`: Contains middleware for authentication and authorization
--   `database/migrations`: Contains database schema migrations
--   `routes`: Contains API route definitions
--   `config`: Contains configuration files
+    -   Credit/debit card payments via Stripe
+    -   Mobile money payments via M-Pesa
+    -   Secure payment processing
+    -   Transaction history
 
-## API Endpoints
+-   **Account Security**
+    -   Two-factor authentication
+    -   Secure password management
+    -   Account activity monitoring
+    -   Profile management
 
-The backend provides the following API endpoints:
+### For Event Organizers
 
-### Authentication
+-   **Event Management Suite**
 
--   `POST /api/register`: Register a new user
--   `POST /api/login`: Authenticate a user
--   `POST /api/logout`: Log out a user
+    -   Comprehensive event creation and editing
+    -   Multiple ticket tier management
+    -   Custom event branding options
+    -   Event scheduling and timing control
 
-### Events
+-   **Check-in System**
 
--   `GET /api/events`: Get all events
--   `GET /api/events/{id}`: Get a specific event
--   `POST /api/events`: Create a new event (Admin only)
--   `PUT /api/events/{id}`: Update an event (Admin only)
--   `DELETE /api/events/{id}`: Delete an event (Admin only)
+    -   QR code scanning for entry
+    -   Real-time attendance tracking
+    -   Multiple entry point support
+    -   Offline mode capability
 
-### Bookings
+-   **Sales Analytics**
+    -   Real-time sales tracking
+    -   Attendance analytics
+    -   Revenue reports
+    -   Ticket type performance metrics
 
--   `GET /api/bookings`: Get user's bookings
--   `POST /api/bookings`: Create a new booking
--   `GET /api/bookings/{id}`: Get a specific booking
--   `GET /api/bookings/{id}/ticket`: Generate ticket QR code
+### For Administrators
 
-### Admin
+-   **Platform Management**
 
--   `GET /api/admin/users`: Get all users (Admin only)
--   `GET /api/admin/bookings`: Get all bookings (Admin only)
--   `GET /api/admin/analytics`: Get analytics data (Admin only)
+    -   User account management
+    -   Event moderation tools
+    -   System health monitoring
+    -   Configuration management
 
-## Environment Variables
+-   **Financial Operations**
 
-See `.env.example` for required environment variables.
+    -   Payment processing oversight
+    -   Refund management
+    -   Revenue analytics
+    -   Transaction monitoring
 
-## See Also
+-   **Security Controls**
+    -   Role-based access control
+    -   Activity audit logs
+    -   Security policy enforcement
+    -   System access management
 
--   [RUNNING.md](../RUNNING.md) for setup and running instructions
--   [Frontend README](../frontend/README.md) for frontend documentation
+## Getting Started
 
-## About Laravel
+### For Users
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+If you're an event organizer or administrator looking to use VentlyX, please contact our support team for account setup and training.
 
--   [Simple, fast routing engine](https://laravel.com/docs/routing).
--   [Powerful dependency injection container](https://laravel.com/docs/container).
--   Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
--   Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
--   Database agnostic [schema migrations](https://laravel.com/docs/migrations).
--   [Robust background job processing](https://laravel.com/docs/queues).
--   [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### For Developers
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Technical documentation, including API references, setup guides, and development standards, can be found in the [backend/docs/README.md](docs/README.md) file.
 
-## Learning Laravel
+## Support and Contact
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+-   **Technical Support:** support@ventlyx.com
+-   **Business Inquiries:** business@ventlyx.com
+-   **Security Issues:** security@ventlyx.com
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
-
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-## Laravel Sponsors
-
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
-
-### Premium Partners
-
--   **[Vehikl](https://vehikl.com/)**
--   **[Tighten Co.](https://tighten.co)**
--   **[WebReinvent](https://webreinvent.com/)**
--   **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
--   **[64 Robots](https://64robots.com)**
--   **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
--   **[Cyber-Duck](https://cyber-duck.co.uk)**
--   **[DevSquad](https://devsquad.com/hire-laravel-developers)**
--   **[Jump24](https://jump24.co.uk)**
--   **[Redberry](https://redberry.international/laravel/)**
--   **[Active Logic](https://activelogic.com)**
--   **[byte5](https://byte5.de)**
--   **[OP.GG](https://op.gg)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+For any other queries, please visit our [FAQ page](https://ventlyx.com/faq).
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+VentlyX is proprietary software. All rights reserved.
