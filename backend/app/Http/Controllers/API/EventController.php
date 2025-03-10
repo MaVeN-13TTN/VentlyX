@@ -15,45 +15,144 @@ use Intervention\Image\Drivers\Gd\Driver;
 class EventController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display a listing of the resource with advanced filtering.
      */
     public function index(Request $request)
     {
         $query = Event::query();
 
+        // Basic status filtering
         if ($request->has('status')) {
             $query->where('status', $request->status);
         } else {
             $query->where('status', 'published');
         }
 
+        // Featured events filter
         if ($request->has('featured') && $request->featured) {
             $query->where('featured', true);
         }
 
+        // Date range filtering
         if ($request->has('start_date')) {
             $query->where('start_time', '>=', $request->start_date);
         }
 
         if ($request->has('end_date')) {
-            $query->where('end_time', '<=', $request->end_date);
+            $query->where('start_time', '<=', $request->end_date);
         }
 
-        if ($request->has('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('title', 'LIKE', "%{$search}%")
-                    ->orWhere('description', 'LIKE', "%{$search}%")
-                    ->orWhere('location', 'LIKE', "%{$search}%");
+        // Category filtering
+        if ($request->has('category')) {
+            $categories = is_array($request->category) ? $request->category : [$request->category];
+            $query->whereIn('category', $categories);
+        }
+
+        // Location/City filtering
+        if ($request->has('location')) {
+            $query->where('location', 'like', '%' . $request->location . '%');
+        }
+
+        // Venue filtering
+        if ($request->has('venue')) {
+            $query->where('venue', 'like', '%' . $request->venue . '%');
+        }
+
+        // Price range filtering (min_price and max_price)
+        if ($request->has('min_price') || $request->has('max_price')) {
+            $query->whereHas('ticketTypes', function ($subQuery) use ($request) {
+                if ($request->has('min_price')) {
+                    $subQuery->where('price', '>=', $request->min_price);
+                }
+
+                if ($request->has('max_price')) {
+                    $subQuery->where('price', '<=', $request->max_price);
+                }
             });
         }
 
-        if ($request->has('with_ticket_types') && $request->with_ticket_types) {
-            $query->with('ticketTypes');
+        // Full-text search
+        if ($request->has('search')) {
+            $searchTerm = $request->search;
+            $query->where(function ($subQuery) use ($searchTerm) {
+                $subQuery->where('title', 'like', '%' . $searchTerm . '%')
+                    ->orWhere('description', 'like', '%' . $searchTerm . '%')
+                    ->orWhere('location', 'like', '%' . $searchTerm . '%')
+                    ->orWhere('venue', 'like', '%' . $searchTerm . '%')
+                    ->orWhere('category', 'like', '%' . $searchTerm . '%');
+            });
         }
 
-        $perPage = $request->input('per_page', 10);
+        // Organizer filtering
+        if ($request->has('organizer_id')) {
+            $query->where('organizer_id', $request->organizer_id);
+        }
 
+        // Available tickets filtering (only show events with available tickets)
+        if ($request->has('available') && $request->available) {
+            $query->whereHas('ticketTypes', function ($subQuery) {
+                $subQuery->where('tickets_remaining', '>', 0)
+                    ->where('status', 'active')
+                    ->where(function ($q) {
+                        $q->whereNull('sales_end_date')
+                            ->orWhere('sales_end_date', '>=', now());
+                    });
+            });
+        }
+
+        // Sort options
+        $sortField = $request->input('sort_by', 'start_time');
+        $sortOrder = $request->input('sort_order', 'asc');
+
+        // Special sort for "popularity" using booking count
+        if ($sortField === 'popularity') {
+            $query->withCount(['bookings' => function ($q) {
+                $q->where('status', 'confirmed');
+            }])
+                ->orderBy('bookings_count', $sortOrder === 'asc' ? 'asc' : 'desc');
+        } else {
+            $query->orderBy($sortField, $sortOrder === 'asc' ? 'asc' : 'desc');
+        }
+
+        // Get unique categories for filtering UI
+        if ($request->has('get_categories')) {
+            return response()->json([
+                'categories' => Event::select('category')->distinct()->get()->pluck('category')
+            ]);
+        }
+
+        // Get available locations for filtering UI
+        if ($request->has('get_locations')) {
+            return response()->json([
+                'locations' => Event::select('location')->distinct()->get()->pluck('location')
+            ]);
+        }
+
+        // Include related data if requested
+        if ($request->has('include')) {
+            $includes = explode(',', $request->include);
+            $allowedIncludes = ['organizer', 'ticketTypes'];
+            $validIncludes = array_intersect($includes, $allowedIncludes);
+
+            if (in_array('organizer', $validIncludes)) {
+                $query->with(['organizer' => function ($q) {
+                    $q->select('id', 'name', 'email');
+                }]);
+            }
+
+            if (in_array('ticketTypes', $validIncludes)) {
+                $query->with(['ticketTypes' => function ($q) {
+                    $q->where('status', 'active')
+                        ->where(function ($sq) {
+                            $sq->whereNull('sales_end_date')
+                                ->orWhere('sales_end_date', '>=', now());
+                        });
+                }]);
+            }
+        }
+
+        // Pagination
+        $perPage = $request->input('per_page', 10);
         $events = $query->paginate($perPage);
 
         return response()->json([
