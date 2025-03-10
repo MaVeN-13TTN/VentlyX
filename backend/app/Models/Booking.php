@@ -24,13 +24,19 @@ class Booking extends Model
         'status',
         'payment_status',
         'qr_code_url',
-        'checked_in_at'
+        'checked_in_at',
+        'transfer_code',
+        'transfer_status',
+        'transfer_initiated_at',
+        'transfer_completed_at'
     ];
 
     protected $casts = [
         'quantity' => 'integer',
         'total_price' => 'float',
-        'checked_in_at' => 'datetime'
+        'checked_in_at' => 'datetime',
+        'transfer_initiated_at' => 'datetime',
+        'transfer_completed_at' => 'datetime'
     ];
 
     public function user(): BelongsTo
@@ -128,5 +134,13 @@ class Booking extends Model
         if ($this->canBeCheckedIn()) {
             $this->update(['checked_in_at' => now()]);
         }
+    }
+
+    public function canBeTransferred(): bool
+    {
+        return $this->status === 'confirmed' &&
+            !$this->checked_in_at &&
+            !$this->transfer_code &&
+            $this->transfer_status !== 'pending';
     }
 }
