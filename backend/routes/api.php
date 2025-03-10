@@ -6,6 +6,13 @@ use App\Http\Controllers\API\TicketTypeController;
 use App\Http\Controllers\API\BookingController;
 use App\Http\Controllers\API\PaymentController;
 use App\Http\Controllers\API\StripeWebhookController;
+use App\Http\Controllers\API\EventAnalyticsController;
+use App\Http\Controllers\API\BookingTransferController;
+use App\Http\Controllers\API\PaymentAnalyticsController;
+use App\Http\Controllers\API\TwoFactorController;
+use App\Http\Controllers\API\MPesaPaymentController;
+use App\Http\Controllers\API\UserManagementController;
+use App\Http\Controllers\API\CheckInController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -21,6 +28,9 @@ use Illuminate\Support\Facades\Route;
 
 // Stripe webhook
 Route::post('/stripe/webhook', [StripeWebhookController::class, 'handleWebhook']);
+
+// M-Pesa callback webhook (public)
+Route::post('/mpesa/callback', [MPesaPaymentController::class, 'handleCallback']);
 
 // Auth routes with specific rate limiting
 Route::middleware('throttle:auth')->group(function () {
@@ -47,17 +57,34 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/profile', [AuthController::class, 'profile']);
 
+    // 2FA routes
+    Route::prefix('2fa')->group(function () {
+        Route::post('/enable', [TwoFactorController::class, 'enable']);
+        Route::post('/confirm', [TwoFactorController::class, 'confirm']);
+        Route::post('/disable', [TwoFactorController::class, 'disable']);
+        Route::post('/verify', [TwoFactorController::class, 'verify']);
+    });
+
     // User booking routes with rate limiting
     Route::middleware('throttle:bookings')->group(function () {
         Route::get('/bookings', [BookingController::class, 'index']);
         Route::post('/bookings', [BookingController::class, 'store']);
         Route::get('/bookings/{id}', [BookingController::class, 'show']);
         Route::post('/bookings/{id}/cancel', [BookingController::class, 'cancel']);
+
+        // Booking transfer routes
+        Route::post('/bookings/{id}/transfer', [BookingTransferController::class, 'initiateTransfer']);
+        Route::post('/bookings/transfer/accept', [BookingTransferController::class, 'acceptTransfer']);
+        Route::post('/bookings/{id}/transfer/cancel', [BookingTransferController::class, 'cancelTransfer']);
     });
 
     // Payment routes with rate limiting
     Route::middleware('throttle:payments')->group(function () {
         Route::post('/payments/process', [PaymentController::class, 'processPayment']);
+
+        // M-Pesa payment routes
+        Route::post('/payments/mpesa/initiate', [MPesaPaymentController::class, 'initiatePayment']);
+        Route::post('/payments/mpesa/check-status', [MPesaPaymentController::class, 'checkStatus']);
     });
 
     // Organizer routes
@@ -72,18 +99,57 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/my-events', [EventController::class, 'myEvents']);
 
-        // Ticket type management
+        // Ticket type management including bulk operations
         Route::post('/events/{eventId}/ticket-types', [TicketTypeController::class, 'store']);
+        Route::post('/events/{eventId}/ticket-types/bulk', [TicketTypeController::class, 'bulkStore']);
+        Route::put('/events/{eventId}/ticket-types/bulk', [TicketTypeController::class, 'bulkUpdate']);
+        Route::delete('/events/{eventId}/ticket-types/bulk', [TicketTypeController::class, 'bulkDelete']);
         Route::put('/events/{eventId}/ticket-types/{id}', [TicketTypeController::class, 'update']);
         Route::delete('/events/{eventId}/ticket-types/{id}', [TicketTypeController::class, 'destroy']);
 
         // Check-in management
         Route::post('/bookings/{id}/check-in', [BookingController::class, 'checkIn']);
+
+        // Enhanced check-in management system
+        Route::prefix('check-in')->group(function () {
+            Route::get('/events/{eventId}/attendees', [CheckInController::class, 'getAttendees']);
+            Route::post('/bookings/{bookingId}', [CheckInController::class, 'checkIn']);
+            Route::post('/verify', [CheckInController::class, 'verifyQrCode']);
+            Route::post('/bookings/{bookingId}/undo', [CheckInController::class, 'undoCheckIn']);
+            Route::get('/events/{eventId}/stats', [CheckInController::class, 'getCheckInStats']);
+            Route::post('/bulk', [CheckInController::class, 'bulkCheckIn']);
+        });
+
+        // Organizer routes with analytics access
+        Route::middleware(['organizer'])->group(function () {
+            Route::get('/analytics/my-events/{id}', [EventAnalyticsController::class, 'getEventStats']);
+            Route::get('/analytics/organizer-dashboard', [EventAnalyticsController::class, 'getOrganizerStats']);
+        });
     });
 
     // Admin routes
     Route::middleware('admin')->group(function () {
         Route::patch('/events/{id}/toggle-featured', [EventController::class, 'toggleFeatured']);
         Route::post('/payments/{payment_id}/refund', [PaymentController::class, 'processRefund']);
+
+        // Analytics routes
+        Route::get('/analytics/events/{id}', [EventAnalyticsController::class, 'getEventStats']);
+        Route::get('/analytics/overall', [EventAnalyticsController::class, 'getOverallStats']);
+
+        // Payment analytics routes
+        Route::get('/analytics/payments', [PaymentAnalyticsController::class, 'getPaymentStats']);
+        Route::get('/analytics/payments/trends', [PaymentAnalyticsController::class, 'getPaymentMethodTrends']);
+        Route::get('/analytics/payments/failures', [PaymentAnalyticsController::class, 'getFailureAnalysis']);
+
+        // User management routes
+        Route::get('/users', [UserManagementController::class, 'index']);
+        Route::post('/users', [UserManagementController::class, 'store']);
+        Route::get('/users/{id}', [UserManagementController::class, 'show']);
+        Route::put('/users/{id}', [UserManagementController::class, 'update']);
+        Route::delete('/users/{id}', [UserManagementController::class, 'destroy']);
+        Route::get('/users-statistics', [UserManagementController::class, 'statistics']);
+        Route::get('/roles', [UserManagementController::class, 'roles']);
+        Route::put('/users/{id}/roles', [UserManagementController::class, 'updateRoles']);
+        Route::patch('/users/{id}/toggle-active', [UserManagementController::class, 'toggleActive']);
     });
 });
