@@ -1,5 +1,33 @@
 # VentlyX
 
+[![Build Status](https://travis-ci.org/ventlyx/ventlyx.svg?branch=main)](https://travis-ci.org/ventlyx/ventlyx)
+[![Version](https://img.shields.io/github/v/release/ventlyx/ventlyx)](https://github.com/ventlyx/ventlyx/releases)
+
+## Quick Start
+
+```bash
+# Clone repository
+git clone https://github.com/your-org/ventlyx.git
+
+# Setup backend
+cd ventlyx/backend
+composer install
+php artisan migrate
+
+# Setup frontend
+cd ../frontend/VentlyX
+npm install
+npm run dev
+```
+
+## Prerequisites
+
+- PHP >= 8.2
+- Node.js >= 18.0
+- PostgreSQL >= 12
+- Composer >= 2.0
+- npm >= 7.0
+
 ## Project Overview
 
 VentlyX is a comprehensive web-based application designed to facilitate seamless booking and management of events, concerts, and shows. The platform provides an intuitive interface for users to explore and book events while enabling administrators to efficiently manage event listings, user registrations, and ticketing operations.
@@ -117,3 +145,19 @@ Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+
+## Common Issues
+
+See our [Troubleshooting Guide](backend/docs/TROUBLESHOOTING.md) for solutions to common problems.
+
+## API Quick Reference
+
+```bash
+# Authentication
+POST /api/v1/auth/login
+POST /api/v1/auth/register
+
+# Events
+GET /api/v1/events
+POST /api/v1/events
+```
