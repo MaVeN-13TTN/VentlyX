@@ -16,13 +16,14 @@ return new class extends Migration
             $table->foreignId('event_id')->constrained()->onDelete('cascade');
             $table->string('name'); // Individual, Group, VIP, VVIP
             $table->decimal('price', 10, 2);
-            $table->integer('quantity_available');
+            $table->integer('quantity');
             $table->text('description')->nullable();
             $table->integer('max_per_order')->nullable();
             $table->dateTime('sales_start_date')->nullable();
             $table->dateTime('sales_end_date')->nullable();
             $table->boolean('is_available')->default(true);
-            $table->integer('tickets_remaining')->default(0);
+            $table->integer('tickets_remaining');
+            $table->enum('status', ['draft', 'active', 'paused', 'sold_out', 'expired', 'cancelled'])->default('draft');
             $table->timestamps();
         });
     }

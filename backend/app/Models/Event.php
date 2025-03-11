@@ -185,6 +185,27 @@ class Event extends Model
         return $this->status === 'published' && !$this->hasStarted();
     }
 
+    public function getTotalTicketsSold(): int
+    {
+        return $this->bookings()
+            ->where('status', 'confirmed')
+            ->sum('quantity');
+    }
+
+    public function isSoldOut(): bool
+    {
+        return $this->ticketTypes()
+            ->where('status', 'active')
+            ->where('tickets_remaining', '>', 0)
+            ->doesntExist();
+    }
+
+    public function scopeUpcoming($query)
+    {
+        return $query->where('start_time', '>', now())
+            ->where('status', 'published');
+    }
+
     protected static function boot()
     {
         parent::boot();

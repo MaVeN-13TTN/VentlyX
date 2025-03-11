@@ -25,20 +25,20 @@ class TicketTypeFactory extends Factory
      */
     public function definition(): array
     {
-        $quantity = $this->faker->numberBetween(50, 500);
+        $quantity = $this->faker->numberBetween(50, 200);
 
         return [
             'event_id' => Event::factory(),
-            'name' => $this->faker->randomElement(['General Admission', 'VIP', 'Premium', 'Early Bird', 'Student', 'Group']),
-            'description' => $this->faker->paragraph(1),
-            'price' => $this->faker->randomFloat(2, 10, 300),
+            'name' => $this->faker->randomElement(['Regular', 'VIP', 'VVIP', 'Early Bird', 'Group']),
+            'price' => $this->faker->numberBetween(1000, 10000),
             'quantity' => $quantity,
+            'description' => $this->faker->paragraph(),
+            'max_per_order' => $this->faker->numberBetween(2, 10),
+            'sales_start_date' => $this->faker->dateTimeBetween('now', '+1 week'),
+            'sales_end_date' => $this->faker->dateTimeBetween('+1 week', '+2 weeks'),
+            'is_available' => true,
             'tickets_remaining' => $quantity,
-            'max_per_order' => $this->faker->numberBetween(4, 10),
-            'sales_start_date' => now()->subDays(5),
-            'sales_end_date' => now()->addDays(10),
-            'status' => 'active',
-            'is_available' => true
+            'status' => 'active'
         ];
     }
 
@@ -48,31 +48,39 @@ class TicketTypeFactory extends Factory
     public function soldOut(): self
     {
         return $this->state([
-            'quantity' => 0,
             'tickets_remaining' => 0,
-            'is_available' => false
+            'status' => 'sold_out'
         ]);
     }
 
     /**
-     * Configure the ticket type with limited availability.
+     * Configure the ticket type with draft status.
      */
-    public function limitedAvailability(int $remaining = 5): self
+    public function draft(): self
     {
         return $this->state([
-            'quantity' => $remaining,
-            'tickets_remaining' => $remaining
+            'status' => 'draft'
         ]);
     }
 
     /**
-     * Configure the ticket type with sales period ended.
+     * Configure the ticket type with paused status.
      */
-    public function salesEnded(): self
+    public function paused(): self
     {
         return $this->state([
-            'sales_end_date' => now()->subDay(),
-            'is_available' => false
+            'status' => 'paused'
+        ]);
+    }
+
+    /**
+     * Configure the ticket type with expired status.
+     */
+    public function expired(): self
+    {
+        return $this->state([
+            'sales_end_date' => $this->faker->dateTimeBetween('-1 week', 'now'),
+            'status' => 'expired'
         ]);
     }
 }

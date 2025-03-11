@@ -2,119 +2,74 @@
 
 namespace Database\Factories;
 
-use App\Models\Booking;
 use App\Models\Payment;
+use App\Models\Booking;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
-/**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Payment>
- */
 class PaymentFactory extends Factory
 {
-    /**
-     * The name of the factory's corresponding model.
-     *
-     * @var string
-     */
     protected $model = Payment::class;
 
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
     public function definition(): array
     {
-        $booking = Booking::factory()->create();
         return [
-            'booking_id' => $booking->id,
-            'payment_method' => $this->faker->randomElement(['stripe', 'paypal']),
-            'amount' => $booking->total_price,
-            'currency' => 'USD',
+            'booking_id' => Booking::factory(),
+            'payment_method' => $this->faker->randomElement(['stripe', 'mpesa', 'paypal']),
+            'payment_id' => $this->faker->uuid(),
+            'amount' => $this->faker->numberBetween(1000, 50000),
             'status' => 'pending',
-            'payment_id' => null,
-            'transaction_details' => null,
+            'transaction_details' => [
+                'payment_intent' => $this->faker->uuid(),
+                'customer_email' => $this->faker->email()
+            ],
+            'currency' => $this->faker->randomElement(['KES', 'USD', 'EUR']),
+            'transaction_id' => strtoupper(uniqid()),
+            'payment_date' => null,
+            'failure_reason' => null,
+            'refund_date' => null,
+            'refund_reason' => null
         ];
     }
 
-    /**
-     * Configure the payment as completed with Stripe
-     */
-    public function completedWithStripe(): self
+    public function completed(): self
     {
-        return $this->state(function (array $attributes) {
-            return [
-                'payment_method' => 'stripe',
-                'status' => 'completed',
-                'payment_id' => 'pi_' . $this->faker->regexify('[A-Za-z0-9]{24}'),
-                'transaction_details' => [
-                    'status' => 'succeeded',
-                    'charges' => [
-                        [
-                            'id' => 'ch_' . $this->faker->regexify('[A-Za-z0-9]{24}'),
-                            'amount' => $attributes['amount'] * 100,
-                            'currency' => 'usd',
-                            'status' => 'succeeded',
-                        ]
-                    ],
-                    'created' => time(),
-                ]
-            ];
-        });
+        return $this->state([
+            'status' => 'completed',
+            'payment_date' => now()
+        ]);
     }
 
-    /**
-     * Configure the payment as completed with PayPal
-     */
-    public function completedWithPayPal(): self
+    public function failed(): self
     {
-        return $this->state(function (array $attributes) {
-            return [
-                'payment_method' => 'paypal',
-                'status' => 'completed',
-                'payment_id' => $this->faker->regexify('[A-Z0-9]{12}'),
-                'transaction_details' => [
-                    'payer_id' => $this->faker->regexify('[A-Z0-9]{13}'),
-                    'payer_email' => $this->faker->email(),
-                    'transaction_id' => $this->faker->regexify('[A-Z0-9]{17}')
-                ]
-            ];
-        });
+        return $this->state([
+            'status' => 'failed',
+            'failure_reason' => $this->faker->sentence()
+        ]);
     }
 
-    /**
-     * Configure the payment as refunded
-     */
     public function refunded(): self
     {
-        return $this->state(function (array $attributes) {
-            $isStripe = $attributes['payment_method'] === 'stripe';
-            $baseDetails = $isStripe ?
-                $this->completedWithStripe()->getStateFor([]) :
-                $this->completedWithPayPal()->getStateFor([]);
+        return $this->state([
+            'status' => 'refunded',
+            'payment_date' => now()->subDays(2),
+            'refund_date' => now(),
+            'refund_reason' => $this->faker->sentence()
+        ]);
+    }
 
-            $refundDetails = $isStripe ?
-                [
-                    'refund_id' => 're_' . $this->faker->regexify('[A-Za-z0-9]{24}'),
-                    'amount' => $attributes['amount'],
-                    'status' => 'succeeded',
-                    'reason' => 'requested_by_customer',
-                    'created' => time()
-                ] :
-                [
-                    'refund_id' => $this->faker->regexify('[A-Z0-9]{17}'),
-                    'amount' => $attributes['amount'],
-                    'status' => 'COMPLETED',
-                    'create_time' => now()->toIso8601String()
-                ];
+    public function mpesa(): self
+    {
+        return $this->state([
+            'payment_method' => 'mpesa',
+            'currency' => 'KES'
+        ]);
+    }
 
-            return [
-                'status' => 'refunded',
-                'transaction_details' => array_merge(
-                    $baseDetails['transaction_details'],
-                    ['refund' => $refundDetails]
-                )
-            ];
-        });
+    public function stripe(): self
+    {
+        return $this->state([
+            'payment_method' => 'stripe',
+            'currency' => 'USD'
+        ]);
     }
 }

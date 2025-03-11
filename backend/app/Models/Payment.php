@@ -23,7 +23,12 @@ class Payment extends Model
         'amount',
         'status',
         'transaction_details',
-        'currency'
+        'currency',
+        'transaction_id',
+        'payment_date',
+        'failure_reason',
+        'refund_date',
+        'refund_reason'
     ];
 
     /**
@@ -32,8 +37,10 @@ class Payment extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'amount' => 'float',
+        'amount' => 'decimal:2',
         'transaction_details' => 'array',
+        'payment_date' => 'datetime',
+        'refund_date' => 'datetime'
     ];
 
     /**
@@ -69,7 +76,7 @@ class Payment extends Model
 
         // Update the related booking
         $this->booking->update(['status' => 'refunded', 'payment_status' => 'refunded']);
-        
+
         return true;
     }
 
@@ -101,5 +108,71 @@ class Payment extends Model
             'refunded' => [],
             'cancelled' => []
         ];
+    }
+
+    public function markAsSuccessful(string $transactionId): void
+    {
+        $this->status = 'completed';
+        $this->transaction_id = $transactionId;
+        $this->payment_date = now();
+        $this->save();
+
+        // Update associated booking status
+        $this->booking->update([
+            'status' => 'confirmed',
+            'payment_status' => 'paid'
+        ]);
+    }
+
+    public function markAsFailed(string $reason): void
+    {
+        $this->status = 'failed';
+        $this->failure_reason = $reason;
+        $this->save();
+
+        // Update associated booking status
+        $this->booking->update([
+            'payment_status' => 'failed'
+        ]);
+    }
+
+    public function refund(string $reason): void
+    {
+        if ($this->status !== 'completed') {
+            throw new \Exception('Only completed payments can be refunded');
+        }
+
+        $this->status = 'refunded';
+        $this->refund_date = now();
+        $this->refund_reason = $reason;
+        $this->save();
+
+        // Update associated booking status
+        $this->booking->update([
+            'status' => 'refunded',
+            'payment_status' => 'refunded'
+        ]);
+    }
+
+    public function scopeCompleted($query)
+    {
+        return $query->where('status', 'completed');
+    }
+
+    public function generateReceiptNumber(): string
+    {
+        return 'RCPT-' . strtoupper(uniqid()) . '-' . $this->id;
+    }
+
+    public function calculateProcessingFee(): float
+    {
+        $rates = [
+            'mpesa' => 0.025, // 2.5%
+            'stripe' => 0.035, // 3.5%
+            'paypal' => 0.039  // 3.9%
+        ];
+
+        $rate = $rates[$this->payment_method] ?? 0.03; // default 3%
+        return round($this->amount * $rate, 2);
     }
 }

@@ -27,7 +27,7 @@ class TicketType extends Model
     ];
 
     protected $casts = [
-        'price' => 'float',
+        'price' => 'decimal:2',
         'quantity' => 'integer',
         'tickets_remaining' => 'integer',
         'max_per_order' => 'integer',
@@ -78,22 +78,23 @@ class TicketType extends Model
     public function updateTicketsRemaining(): void
     {
         $soldTickets = $this->bookings()
-            ->whereIn('status', ['confirmed', 'pending'])
+            ->where('status', 'confirmed')
             ->sum('quantity');
 
-        $this->tickets_remaining = max(0, $this->quantity - $soldTickets);
+        $this->tickets_remaining = $this->quantity - $soldTickets;
         $this->save();
+
+        if ($this->tickets_remaining <= 0 && $this->status === 'active') {
+            $this->update(['status' => 'sold_out']);
+        }
     }
 
     public function isAvailable(): bool
     {
-        return $this->status === 'active' &&
-            $this->is_available &&
-            $this->getTicketsRemaining() > 0 &&
-            now()->between(
-                $this->sales_start_date ?? $this->event->start_time,
-                $this->sales_end_date ?? $this->event->end_time
-            );
+        return $this->is_available &&
+            $this->status === 'active' &&
+            $this->tickets_remaining > 0 &&
+            $this->isSalesOpen();
     }
 
     public function canBePurchased(int $quantity): bool
@@ -105,7 +106,7 @@ class TicketType extends Model
 
     public function isSoldOut(): bool
     {
-        return $this->getTicketsRemaining() === 0;
+        return $this->tickets_remaining <= 0;
     }
 
     public function hasExpired(): bool
@@ -115,10 +116,9 @@ class TicketType extends Model
 
     public function canBeModified(): bool
     {
-        return in_array($this->status, ['draft', 'active', 'paused']) &&
-            !$this->bookings()
-                ->whereIn('status', ['confirmed', 'pending'])
-                ->exists();
+        return !$this->bookings()
+            ->where('status', 'confirmed')
+            ->exists();
     }
 
     public function updateAvailability(): void
@@ -132,6 +132,15 @@ class TicketType extends Model
         } elseif ($this->hasExpired()) {
             $this->transitionTo('expired');
         }
+    }
+
+    public function isSalesOpen(): bool
+    {
+        $now = now();
+        $salesStarted = !$this->sales_start_date || $now->greaterThanOrEqualTo($this->sales_start_date);
+        $salesNotEnded = !$this->sales_end_date || $now->lessThan($this->sales_end_date);
+
+        return $salesStarted && $salesNotEnded;
     }
 
     protected static function boot()
@@ -154,5 +163,10 @@ class TicketType extends Model
         static::saved(function (TicketType $ticketType) {
             $ticketType->updateAvailability();
         });
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
     }
 }

@@ -10,7 +10,6 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             $table->boolean('is_active')->default(true)->after('remember_token');
-            $table->string('phone_number')->nullable()->after('email');
             $table->string('profile_picture')->nullable()->after('phone_number');
         });
     }
@@ -18,7 +17,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['is_active', 'phone_number', 'profile_picture']);
+            $table->dropColumn(['is_active', 'profile_picture']);
         });
     }
 };

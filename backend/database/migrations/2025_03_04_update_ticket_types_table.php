@@ -12,8 +12,6 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('ticket_types', function (Blueprint $table) {
-            $table->renameColumn('quantity_available', 'quantity');
-
             // Add status column if it doesn't exist
             if (!Schema::hasColumn('ticket_types', 'status')) {
                 $table->enum('status', ['draft', 'published', 'archived'])->default('draft');
@@ -27,8 +25,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('ticket_types', function (Blueprint $table) {
-            $table->renameColumn('quantity', 'quantity_available');
-
             if (Schema::hasColumn('ticket_types', 'status')) {
                 $table->dropColumn('status');
             }

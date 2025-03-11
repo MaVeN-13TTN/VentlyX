@@ -28,7 +28,9 @@ class Booking extends Model
         'transfer_code',
         'transfer_status',
         'transfer_initiated_at',
-        'transfer_completed_at'
+        'transfer_completed_at',
+        'transferred_to',
+        'transferred_from'
     ];
 
     protected $casts = [
@@ -142,5 +144,59 @@ class Booking extends Model
             !$this->checked_in_at &&
             !$this->transfer_code &&
             $this->transfer_status !== 'pending';
+    }
+
+    public function checkIn(): void
+    {
+        if ($this->status !== 'confirmed') {
+            throw new \Exception('Booking must be confirmed to check in');
+        }
+        $this->update([
+            'checked_in_at' => now()
+        ]);
+    }
+
+    public function calculateTotalPrice(): float
+    {
+        return $this->ticketType->price * $this->quantity;
+    }
+
+    public function cancel(): void
+    {
+        if (!$this->canBeCancelled()) {
+            throw new \Exception('Booking cannot be cancelled');
+        }
+        $this->update([
+            'status' => 'cancelled',
+            'payment_status' => 'cancelled'
+        ]);
+    }
+
+    public function scopeConfirmed($query)
+    {
+        return $query->where('status', 'confirmed');
+    }
+
+    public function transfer(User $toUser): void
+    {
+        if ($this->status !== 'confirmed') {
+            throw new \Exception('Only confirmed bookings can be transferred');
+        }
+
+        if ($this->transfer_status === 'completed') {
+            throw new \Exception('Booking has already been transferred');
+        }
+
+        $this->update([
+            'transfer_status' => 'completed',
+            'transfer_code' => strtoupper(uniqid()),
+            'transferred_at' => now(),
+            'transferred_to' => $toUser->id,
+            'transferred_from' => $this->user_id,
+            'user_id' => $toUser->id
+        ]);
+
+        // Generate new QR code for the new user
+        $this->generateQrCode();
     }
 }
