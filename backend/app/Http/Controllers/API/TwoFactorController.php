@@ -15,9 +15,9 @@ class TwoFactorController extends Controller
 {
     protected $google2fa;
 
-    public function __construct()
+    public function __construct(Google2FA $google2fa)
     {
-        $this->google2fa = new Google2FA();
+        $this->google2fa = $google2fa;
     }
 
     public function enable(Request $request)
@@ -150,6 +150,12 @@ class TwoFactorController extends Controller
         // Check if it's a recovery code
         if (strlen($request->code) > 6) {
             return $this->verifyRecoveryCode($request, $user);
+        }
+
+        if (!$user->two_factor_enabled) {
+            return response()->json([
+                'message' => '2FA is not enabled'
+            ], 400);
         }
 
         $valid = $this->google2fa->verifyKey(
