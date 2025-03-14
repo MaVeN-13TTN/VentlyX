@@ -25,14 +25,8 @@ class TwoFactorControllerTest extends TestCase
         // Create a mock for Google2FA
         $this->google2faMock = Mockery::mock(Google2FA::class);
 
-        // Create controller
-        $this->controller = new TwoFactorController();
-
-        // Use reflection to replace the protected google2fa property
-        $reflection = new ReflectionClass($this->controller);
-        $property = $reflection->getProperty('google2fa');
-        $property->setAccessible(true);
-        $property->setValue($this->controller, $this->google2faMock);
+        // Create controller with the mock injected
+        $this->controller = new TwoFactorController($this->google2faMock);
     }
 
     protected function tearDown(): void
@@ -64,6 +58,11 @@ class TwoFactorControllerTest extends TestCase
 
         $this->google2faMock->shouldReceive('getQRCodeUrl')
             ->once()
+            ->withArgs(function ($email, $companyName, $secret) use ($user) {
+                return $email === $user->email
+                    && $companyName === config('app.name')
+                    && $secret === 'test-secret-key';
+            })
             ->andReturn('https://chart.googleapis.com/chart?test-qr-code');
 
         // Call the method
