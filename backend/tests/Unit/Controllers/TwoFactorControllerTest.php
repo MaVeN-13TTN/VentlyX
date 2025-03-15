@@ -58,9 +58,9 @@ class TwoFactorControllerTest extends TestCase
 
         $this->google2faMock->shouldReceive('getQRCodeUrl')
             ->once()
-            ->withArgs(function ($email, $companyName, $secret) use ($user) {
-                return $email === $user->email
-                    && $companyName === config('app.name')
+            ->withArgs(function ($companyName, $email, $secret) use ($user) {
+                return $companyName === config('app.name')
+                    && $email === $user->email
                     && $secret === 'test-secret-key';
             })
             ->andReturn('https://chart.googleapis.com/chart?test-qr-code');
