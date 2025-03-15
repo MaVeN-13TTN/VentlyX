@@ -67,7 +67,7 @@ Route::prefix('v1')->group(function () {
     });
 
     // Protected routes
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum'])->group(function () {
         // Auth routes
         Route::prefix('auth')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
@@ -103,7 +103,7 @@ Route::prefix('v1')->group(function () {
         });
 
         // Organizer routes
-        Route::middleware(['organizer'])->group(function () {
+        Route::middleware(['auth:sanctum', 'organizer'])->group(function () {
             // Event management with rate limiting
             Route::middleware('throttle:event-creation')->group(function () {
                 Route::post('/events', [EventController::class, 'store']);
@@ -140,7 +140,7 @@ Route::prefix('v1')->group(function () {
         });
 
         // Admin routes
-        Route::middleware('admin')->group(function () {
+        Route::middleware(['auth:sanctum', 'admin'])->group(function () {
             Route::patch('/events/{id}/toggle-featured', [EventController::class, 'toggleFeatured']);
             Route::post('/payments/{payment_id}/refund', [PaymentController::class, 'processRefund']);
 

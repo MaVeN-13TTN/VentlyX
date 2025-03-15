@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Carbon\Carbon;
 
 class Event extends Model
 {
@@ -29,7 +30,7 @@ class Event extends Model
         'status',
         'featured',
         'image_url',
-        'max_capacity'
+        'capacity'
     ];
 
     /**
@@ -41,7 +42,7 @@ class Event extends Model
         'start_time' => 'datetime',
         'end_time' => 'datetime',
         'featured' => 'boolean',
-        'max_capacity' => 'integer'
+        'capacity' => 'integer'
     ];
 
     /**
@@ -110,9 +111,9 @@ class Event extends Model
     {
         return [
             'draft' => ['published'],
-            'published' => ['cancelled', 'postponed', 'ended', 'archived'],
+            'published' => ['cancelled', 'postponed', 'ended'],
             'cancelled' => ['archived'],
-            'postponed' => ['published', 'cancelled', 'archived'],
+            'postponed' => ['published', 'cancelled'],
             'ended' => ['archived'],
             'archived' => []
         ];
@@ -120,7 +121,7 @@ class Event extends Model
 
     public function getTicketsRemaining(): int
     {
-        if ($this->max_capacity === null) {
+        if ($this->capacity === null) {
             return PHP_INT_MAX;
         }
 
@@ -128,7 +129,7 @@ class Event extends Model
             ->whereIn('status', ['confirmed', 'pending'])
             ->sum('quantity');
 
-        return max(0, $this->max_capacity - $soldTickets);
+        return max(0, $this->capacity - $soldTickets);
     }
 
     public function hasAvailableTickets(): bool
@@ -218,6 +219,13 @@ class Event extends Model
 
         static::updating(function (Event $event) {
             if ($event->isDirty('end_time') && $event->hasStarted()) {
+                $event->status = 'ended';
+            }
+        });
+
+        static::saving(function (Event $event) {
+            // Auto-mark event as ended if end time has passed
+            if ($event->status === 'published' && $event->end_time && now()->gte($event->end_time)) {
                 $event->status = 'ended';
             }
         });

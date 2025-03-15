@@ -24,6 +24,11 @@ class RouteServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Register middleware aliases
+        Route::aliasMiddleware('admin', \App\Http\Middleware\AdminMiddleware::class);
+        Route::aliasMiddleware('organizer', \App\Http\Middleware\OrganizerMiddleware::class);
+        Route::aliasMiddleware('api-cache', \App\Http\Middleware\CacheResponseMiddleware::class);
+
         // Configure rate limiting
         $this->configureRateLimiting();
 
