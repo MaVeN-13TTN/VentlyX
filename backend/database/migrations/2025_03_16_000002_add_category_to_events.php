@@ -8,11 +8,15 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Migration removed as venue column already exists
+        Schema::table('events', function (Blueprint $table) {
+            $table->string('category')->after('organizer_id');
+        });
     }
 
     public function down(): void
     {
-        // No changes to revert
+        Schema::table('events', function (Blueprint $table) {
+            $table->dropColumn('category');
+        });
     }
 };

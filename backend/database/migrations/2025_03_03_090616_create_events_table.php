@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -16,12 +17,13 @@ return new class extends Migration
             $table->string('title');
             $table->text('description');
             $table->string('location');
+            $table->string('venue');
             $table->dateTime('start_time');
             $table->dateTime('end_time');
             $table->string('image_url')->nullable();
             $table->foreignId('organizer_id')->constrained('users')->onDelete('cascade');
             $table->integer('capacity')->nullable();
-            $table->enum('status', ['draft', 'published', 'cancelled', 'completed'])->default('draft');
+            $table->enum('status', ['draft', 'published', 'cancelled', 'postponed', 'ended', 'archived'])->default('draft');
             $table->boolean('featured')->default(false);
             $table->json('additional_info')->nullable();
             $table->timestamps();
