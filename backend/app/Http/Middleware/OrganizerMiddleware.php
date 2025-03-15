@@ -10,15 +10,11 @@ class OrganizerMiddleware
 {
     /**
      * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!$request->user() || (!$request->user()->hasRole('Organizer') && !$request->user()->hasRole('Admin'))) {
-            return response()->json([
-                'message' => 'Unauthorized. Organizer access required.'
-            ], 403);
+        if (!$request->user() || !($request->user()->hasRole('Admin') || $request->user()->hasRole('Organizer'))) {
+            return response()->json(['message' => 'Unauthorized. Organizer access required.'], 403);
         }
 
         return $next($request);
