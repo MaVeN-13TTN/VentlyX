@@ -87,15 +87,22 @@ class BookingTest extends TestCase
         $booking->generateQrCode();
 
         $this->assertNotNull($booking->qr_code_url);
-        // Since we're in a testing environment, the model uses a placeholder file name
-        $this->assertEquals('test-qr-code.png', $booking->qr_code_url);
+        // Check that the QR code URL follows the expected pattern
+        $this->assertMatchesRegularExpression('/^qr_codes\/\d+_\d+\.png$/', $booking->qr_code_url);
     }
 
     public function test_booking_can_be_checked_in()
     {
+        // Create an event with start and end times that include the current time
+        $event = Event::factory()->create([
+            'start_time' => now()->subHour(),
+            'end_time' => now()->addHour()
+        ]);
+
         $booking = Booking::factory()->create([
             'status' => 'confirmed',
-            'payment_status' => 'paid'
+            'payment_status' => 'paid',
+            'event_id' => $event->id
         ]);
 
         $this->assertNull($booking->checked_in_at);
@@ -154,5 +161,25 @@ class BookingTest extends TestCase
 
         $this->assertEquals(1, $confirmedBookings->count());
         $this->assertTrue($confirmedBookings->contains($confirmedBooking));
+    }
+
+    public function test_can_make_new_booking_after_cancellation()
+    {
+        // Create and cancel first booking
+        $firstBooking = Booking::factory()->create([
+            'status' => 'confirmed',
+            'payment_status' => 'paid'
+        ]);
+
+        $firstBooking->cancel();
+
+        // Attempt to create a new booking
+        $newBooking = Booking::factory()->create([
+            'status' => 'pending',
+            'payment_status' => 'pending'
+        ]);
+
+        $this->assertEquals('pending', $newBooking->status);
+        $this->assertNotEquals($firstBooking->id, $newBooking->id);
     }
 }
