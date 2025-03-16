@@ -13,6 +13,7 @@ use App\Http\Controllers\API\TwoFactorController;
 use App\Http\Controllers\API\MPesaPaymentController;
 use App\Http\Controllers\API\UserManagementController;
 use App\Http\Controllers\API\CheckInController;
+use App\Http\Controllers\API\NotificationController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -80,6 +81,18 @@ Route::prefix('v1')->group(function () {
             Route::post('/confirm', [TwoFactorController::class, 'confirm']);
             Route::post('/disable', [TwoFactorController::class, 'disable']);
             Route::post('/verify', [TwoFactorController::class, 'verify']);
+        });
+
+        // Notification routes
+        Route::prefix('notifications')->group(function () {
+            Route::get('/', [NotificationController::class, 'index']);
+            Route::get('/unread', [NotificationController::class, 'unread']);
+            Route::patch('/{id}/read', [NotificationController::class, 'markAsRead']);
+            Route::patch('/read-all', [NotificationController::class, 'markAllAsRead']);
+            Route::delete('/{id}', [NotificationController::class, 'destroy']);
+            Route::delete('/all', [NotificationController::class, 'destroyAll']);
+            Route::get('/preferences', [NotificationController::class, 'getPreferences']);
+            Route::put('/preferences', [NotificationController::class, 'updatePreferences']);
         });
 
         // Booking routes
