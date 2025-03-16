@@ -223,6 +223,33 @@ class EventAnalyticsController extends Controller
             ->where('status', 'confirmed')
             ->sum('quantity');
 
+        // Popular events
+        $popularEvents = Event::select('events.id', 'events.title', DB::raw('SUM(bookings.quantity) as tickets_sold'))
+            ->join('bookings', 'events.id', '=', 'bookings.event_id')
+            ->where('events.organizer_id', $organizerId)
+            ->where('bookings.status', 'confirmed')
+            ->whereBetween('bookings.created_at', [$startDate, $endDate])
+            ->groupBy('events.id', 'events.title')
+            ->orderBy('tickets_sold', 'desc')
+            ->limit(5)
+            ->get();
+
+        // Sales by ticket type
+        $salesByTicketType = DB::table('bookings')
+            ->join('ticket_types', 'bookings.ticket_type_id', '=', 'ticket_types.id')
+            ->join('events', 'bookings.event_id', '=', 'events.id')
+            ->select(
+                'ticket_types.name',
+                DB::raw('SUM(bookings.quantity) as tickets_sold'),
+                DB::raw('SUM(bookings.total_price) as revenue')
+            )
+            ->where('events.organizer_id', $organizerId)
+            ->where('bookings.status', 'confirmed')
+            ->whereBetween('bookings.created_at', [$startDate, $endDate])
+            ->groupBy('ticket_types.name')
+            ->orderBy('tickets_sold', 'desc')
+            ->get();
+
         $salesByEvent = Booking::select(
             'events.id',
             'events.title',
@@ -238,10 +265,11 @@ class EventAnalyticsController extends Controller
             ->orderBy('revenue', 'desc')
             ->get();
 
-        // Sales trends
-        $dailySales = Booking::select(
+        // Sales by day
+        $salesByDay = Booking::select(
             DB::raw('DATE(created_at) as date'),
-            DB::raw('SUM(total_price) as revenue')
+            DB::raw('SUM(total_price) as revenue'),
+            DB::raw('SUM(quantity) as tickets_sold')
         )
             ->whereIn('event_id', $events)
             ->where('status', 'confirmed')
@@ -249,6 +277,22 @@ class EventAnalyticsController extends Controller
             ->groupBy('date')
             ->orderBy('date')
             ->get();
+
+        // Check-in stats
+        $checkInStats = [
+            'total_attendees' => Booking::whereIn('event_id', $events)
+                ->where('status', 'confirmed')
+                ->count(),
+            'checked_in' => Booking::whereIn('event_id', $events)
+                ->where('status', 'confirmed')
+                ->whereNotNull('checked_in_at')
+                ->count(),
+        ];
+
+        // Calculate check-in rate
+        $checkInStats['check_in_rate'] = $checkInStats['total_attendees'] > 0
+            ? round(($checkInStats['checked_in'] / $checkInStats['total_attendees']) * 100, 2)
+            : 0;
 
         return response()->json([
             'events_summary' => [
@@ -260,9 +304,14 @@ class EventAnalyticsController extends Controller
             'sales_summary' => [
                 'total_sales' => $totalSales,
                 'total_tickets_sold' => $totalTicketsSold,
+                'average_ticket_price' => $totalTicketsSold > 0 ? round($totalSales / $totalTicketsSold, 2) : 0,
             ],
+            'popular_events' => $popularEvents,
+            'sales_by_ticket_type' => $salesByTicketType,
+            'sales_by_day' => $salesByDay,
             'sales_by_event' => $salesByEvent,
-            'daily_sales' => $dailySales
+            'daily_sales' => $salesByDay,
+            'check_in_stats' => $checkInStats
         ]);
     }
 

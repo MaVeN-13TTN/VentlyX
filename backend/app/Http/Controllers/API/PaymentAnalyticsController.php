@@ -54,7 +54,7 @@ class PaymentAnalyticsController extends Controller
     {
         return Payment::where('status', 'completed')
             ->select(
-                DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'),
+                DB::raw("TO_CHAR(created_at, 'YYYY-MM') as month"),
                 DB::raw('COUNT(*) as transactions'),
                 DB::raw('SUM(amount) as revenue'),
                 DB::raw('AVG(amount) as average_transaction')
@@ -72,7 +72,7 @@ class PaymentAnalyticsController extends Controller
                 'refund_reason',
                 DB::raw('COUNT(*) as count'),
                 DB::raw('SUM(amount) as total_amount'),
-                DB::raw('AVG(TIMESTAMPDIFF(HOUR, created_at, refunded_at)) as avg_time_to_refund')
+                DB::raw('AVG(EXTRACT(EPOCH FROM (refund_date - created_at))/3600) as avg_time_to_refund')
             )
             ->groupBy('refund_reason')
             ->get();
@@ -80,11 +80,13 @@ class PaymentAnalyticsController extends Controller
 
     protected function getFailureReasons()
     {
+        $totalFailedCount = Payment::where('status', 'failed')->count();
+
         return Payment::where('status', 'failed')
             ->select(
                 'failure_reason',
                 DB::raw('COUNT(*) as count'),
-                DB::raw('(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM payments WHERE status = "failed")) as percentage')
+                DB::raw('(COUNT(*) * 100.0 / ' . ($totalFailedCount ?: 1) . ') as percentage')
             )
             ->groupBy('failure_reason')
             ->get();
@@ -92,19 +94,40 @@ class PaymentAnalyticsController extends Controller
 
     public function getPaymentMethodTrends()
     {
-        $trends = Payment::where('status', 'completed')
+        $rawTrends = Payment::where('status', 'completed')
             ->select(
-                DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'),
+                DB::raw("TO_CHAR(created_at, 'YYYY-MM') as month"),
                 'payment_method',
                 DB::raw('COUNT(*) as count'),
                 DB::raw('SUM(amount) as total_amount')
             )
             ->groupBy('month', 'payment_method')
             ->orderBy('month')
-            ->get()
-            ->groupBy('payment_method');
+            ->get();
 
-        return response()->json(['trends' => $trends]);
+        // Restructure the data to match the expected format
+        $months = $rawTrends->pluck('month')->unique()->values();
+        $formattedTrends = [];
+
+        foreach ($months as $month) {
+            $monthData = [
+                'date' => $month,
+                'stripe' => 0,
+                'mpesa' => 0,
+                'paypal' => 0
+            ];
+
+            foreach ($rawTrends->where('month', $month) as $trend) {
+                $method = strtolower($trend->payment_method);
+                if (isset($monthData[$method])) {
+                    $monthData[$method] = $trend->count;
+                }
+            }
+
+            $formattedTrends[] = $monthData;
+        }
+
+        return response()->json(['trends' => $formattedTrends]);
     }
 
     public function getFailureAnalysis(Request $request)
