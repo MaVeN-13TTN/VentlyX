@@ -27,25 +27,25 @@ use Illuminate\Http\Request;
 |
 */
 
-// API versioning - all routes grouped under v1 prefix
+// API root - provides basic API information
+Route::get('/', function () {
+    return response()->json([
+        'name' => 'VentlyX API',
+        'version' => 'v1',
+        'status' => 'active',
+        'documentation' => '/docs/api',
+        'timestamp' => now()->toIso8601String()
+    ]);
+});
+
+// Stripe webhook
+Route::post('/stripe/webhook', [StripeWebhookController::class, 'handleWebhook']);
+
+// M-Pesa callback webhook (public)
+Route::post('/mpesa/callback', [MPesaPaymentController::class, 'handleCallback']);
+
+// All API v1 routes
 Route::prefix('v1')->group(function () {
-    // API root - provides basic API information
-    Route::get('/', function () {
-        return response()->json([
-            'name' => 'VentlyX API',
-            'version' => 'v1',
-            'status' => 'active',
-            'documentation' => '/docs/api',
-            'timestamp' => now()->toIso8601String()
-        ]);
-    });
-
-    // Stripe webhook
-    Route::post('/stripe/webhook', [StripeWebhookController::class, 'handleWebhook']);
-
-    // M-Pesa callback webhook (public)
-    Route::post('/mpesa/callback', [MPesaPaymentController::class, 'handleCallback']);
-
     // Auth routes with specific rate limiting
     Route::middleware('throttle:auth')->group(function () {
         Route::prefix('auth')->group(function () {
@@ -82,16 +82,22 @@ Route::prefix('v1')->group(function () {
             Route::post('/verify', [TwoFactorController::class, 'verify']);
         });
 
-        // User booking routes with rate limiting
+        // Booking routes
         Route::middleware('throttle:bookings')->group(function () {
             Route::get('/bookings', [BookingController::class, 'index']);
             Route::post('/bookings', [BookingController::class, 'store']);
             Route::get('/bookings/{id}', [BookingController::class, 'show']);
             Route::post('/bookings/{id}/cancel', [BookingController::class, 'cancel']);
-            // Booking transfer routes
-            Route::post('/bookings/{id}/transfer', [BookingTransferController::class, 'initiateTransfer']);
+            Route::get('/bookings/{id}/qr-code', [BookingController::class, 'getQrCode']);
+            Route::post('/bookings/validate-qr', [BookingController::class, 'validateQrCode']);
+
+            // Add route for check-in to match test expectations
+            Route::post('/bookings/{id}/check-in', [CheckInController::class, 'checkIn']);
+
+            // Transfer routes
+            Route::post('/bookings/{id}/transfer/initiate', [BookingTransferController::class, 'initiateTransfer']);
             Route::post('/bookings/transfer/accept', [BookingTransferController::class, 'acceptTransfer']);
-            Route::post('/bookings/{id}/transfer/cancel', [BookingTransferController::class, 'cancelTransfer']);
+            Route::delete('/bookings/{id}/transfer', [BookingTransferController::class, 'cancelTransfer']);
         });
 
         // Payment routes with rate limiting
@@ -113,6 +119,16 @@ Route::prefix('v1')->group(function () {
             });
             Route::get('/my-events', [EventController::class, 'myEvents']);
 
+            // Enhanced check-in management system
+            Route::prefix('check-in')->group(function () {
+                Route::post('/bookings/{id}', [CheckInController::class, 'checkIn']);
+                Route::get('/events/{eventId}/attendees', [CheckInController::class, 'getAttendees']);
+                Route::post('/verify', [CheckInController::class, 'verifyQrCode']);
+                Route::post('/bookings/{id}/undo', [CheckInController::class, 'undoCheckIn']);
+                Route::get('/events/{eventId}/stats', [CheckInController::class, 'getCheckInStats']);
+                Route::post('/bulk', [CheckInController::class, 'bulkCheckIn']);
+            });
+
             // Ticket type management including bulk operations
             Route::post('/events/{eventId}/ticket-types', [TicketTypeController::class, 'store']);
             Route::post('/events/{eventId}/ticket-types/bulk', [TicketTypeController::class, 'bulkStore']);
@@ -120,19 +136,6 @@ Route::prefix('v1')->group(function () {
             Route::delete('/events/{eventId}/ticket-types/bulk', [TicketTypeController::class, 'bulkDelete']);
             Route::put('/events/{eventId}/ticket-types/{id}', [TicketTypeController::class, 'update']);
             Route::delete('/events/{eventId}/ticket-types/{id}', [TicketTypeController::class, 'destroy']);
-
-            // Check-in management
-            Route::post('/bookings/{id}/check-in', [BookingController::class, 'checkIn']);
-
-            // Enhanced check-in management system
-            Route::prefix('check-in')->group(function () {
-                Route::get('/events/{eventId}/attendees', [CheckInController::class, 'getAttendees']);
-                Route::post('/bookings/{bookingId}', [CheckInController::class, 'checkIn']);
-                Route::post('/verify', [CheckInController::class, 'verifyQrCode']);
-                Route::post('/bookings/{bookingId}/undo', [CheckInController::class, 'undoCheckIn']);
-                Route::get('/events/{eventId}/stats', [CheckInController::class, 'getCheckInStats']);
-                Route::post('/bulk', [CheckInController::class, 'bulkCheckIn']);
-            });
 
             // Organizer routes with analytics access
             Route::get('/analytics/my-events/{id}', [EventAnalyticsController::class, 'getEventStats']);
