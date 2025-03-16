@@ -24,6 +24,7 @@ class PaymentFactory extends Factory
             ],
             'currency' => $this->faker->randomElement(['KES', 'USD', 'EUR']),
             'transaction_id' => strtoupper(uniqid()),
+            'transaction_reference' => 'TX-' . $this->faker->regexify('[A-Za-z0-9]{10}'),
             'payment_date' => null,
             'failure_reason' => null,
             'refund_date' => null,

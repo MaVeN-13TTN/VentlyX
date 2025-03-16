@@ -78,7 +78,8 @@ class BookingController extends Controller
                 'quantity' => $validated['quantity'],
                 'total_price' => $ticketType->price * $validated['quantity'],
                 'status' => 'pending',
-                'payment_status' => 'pending'
+                'payment_status' => 'pending',
+                'booking_reference' => 'BK-' . strtoupper(uniqid())
             ]);
 
             // Update tickets remaining

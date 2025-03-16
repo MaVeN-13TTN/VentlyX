@@ -25,6 +25,7 @@ class Payment extends Model
         'transaction_details',
         'currency',
         'transaction_id',
+        'transaction_reference',
         'payment_date',
         'failure_reason',
         'refund_date',

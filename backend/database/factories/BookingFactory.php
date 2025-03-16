@@ -23,6 +23,7 @@ class BookingFactory extends Factory
             'total_price' => $this->faker->numberBetween(1000, 10000),
             'status' => 'pending',
             'payment_status' => 'pending',
+            'booking_reference' => 'BK-' . $this->faker->regexify('[A-Za-z0-9]{10}'),
             'qr_code_url' => null,
             'transfer_code' => null,
             'transfer_status' => null,
