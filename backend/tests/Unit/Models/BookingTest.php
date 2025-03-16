@@ -30,7 +30,8 @@ class BookingTest extends TestCase
             'quantity' => 2,
             'total_price' => 2000,
             'status' => 'pending',
-            'payment_status' => 'pending'
+            'payment_status' => 'pending',
+            'booking_reference' => 'BK-' . \Illuminate\Support\Str::random(8)
         ];
 
         $booking = Booking::create($bookingData);
