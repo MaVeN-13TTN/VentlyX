@@ -80,7 +80,7 @@ class CheckInController extends Controller
         $booking = Booking::with(['event', 'ticketType'])->findOrFail($id);
 
         // Check if user is organizer of the event or admin
-        if (!$request->user()->hasRole('admin') && $request->user()->id !== $booking->event->organizer_id) {
+        if (!$request->user()->hasRole('Admin') && $request->user()->id !== $booking->event->organizer_id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -215,7 +215,7 @@ class CheckInController extends Controller
 
         // Check-in rate by hour (in the event's time zone)
         $checkInsByHour = DB::table('bookings')
-            ->select(DB::raw('HOUR(checked_in_at) as hour'), DB::raw('COUNT(*) as count'))
+            ->select(DB::raw('EXTRACT(HOUR FROM checked_in_at) as hour'), DB::raw('COUNT(*) as count'))
             ->where('event_id', $eventId)
             ->whereNotNull('checked_in_at')
             ->groupBy('hour')

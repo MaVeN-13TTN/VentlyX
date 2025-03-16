@@ -331,7 +331,7 @@ class EventAnalyticsController extends Controller
     {
         $query = DB::table('bookings')
             ->select(
-                DB::raw('HOUR(created_at) as hour'),
+                DB::raw('EXTRACT(HOUR FROM created_at) as hour'),
                 DB::raw('COUNT(id) as booking_count'),
                 DB::raw('SUM(quantity) as tickets_sold'),
                 DB::raw('SUM(total_price) as revenue')
@@ -454,7 +454,7 @@ class EventAnalyticsController extends Controller
     {
         return DB::table('bookings')
             ->select(
-                DB::raw('HOUR(checked_in_at) as hour'),
+                DB::raw('EXTRACT(HOUR FROM checked_in_at) as hour'),
                 DB::raw('COUNT(*) as count')
             )
             ->where('event_id', $eventId)
