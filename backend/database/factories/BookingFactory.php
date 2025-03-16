@@ -3,73 +3,90 @@
 namespace Database\Factories;
 
 use App\Models\Booking;
-use App\Models\User;
 use App\Models\Event;
 use App\Models\TicketType;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 class BookingFactory extends Factory
 {
     protected $model = Booking::class;
 
-    public function definition(): array
+    public function definition()
     {
-        $ticketType = TicketType::factory()->create();
-        $quantity = $this->faker->numberBetween(1, 5);
-
         return [
             'user_id' => User::factory(),
-            'event_id' => $ticketType->event_id,
-            'ticket_type_id' => $ticketType->id,
-            'quantity' => $quantity,
-            'total_price' => $ticketType->price * $quantity,
+            'event_id' => Event::factory(),
+            'ticket_type_id' => TicketType::factory(),
+            'quantity' => $this->faker->numberBetween(1, 5),
+            'total_price' => $this->faker->numberBetween(1000, 10000),
             'status' => 'pending',
             'payment_status' => 'pending',
-            'qr_code' => null,
-            'checked_in_at' => null,
-            'transfer_status' => null,
+            'qr_code_url' => null,
             'transfer_code' => null,
-            'transferred_at' => null,
-            'transferred_to' => null,
-            'transferred_from' => null
+            'transfer_status' => null,
+            'transfer_initiated_at' => null,
+            'transfer_completed_at' => null,
+            'checked_in_at' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
         ];
     }
 
-    public function confirmed(): self
+    /**
+     * Indicate that the booking is confirmed.
+     */
+    public function confirmed()
     {
-        return $this->state([
-            'status' => 'confirmed',
-            'payment_status' => 'paid',
-            'qr_code' => 'data:image/png;base64,' . base64_encode($this->faker->text)
-        ]);
+        return $this->state(function (array $attributes) {
+            return [
+                'status' => 'confirmed',
+                'payment_status' => 'paid',
+            ];
+        });
     }
 
-    public function cancelled(): self
+    /**
+     * Indicate that the booking is cancelled.
+     */
+    public function cancelled()
     {
-        return $this->state([
-            'status' => 'cancelled',
-            'payment_status' => 'cancelled'
-        ]);
+        return $this->state(function (array $attributes) {
+            return [
+                'status' => 'cancelled',
+                'payment_status' => 'cancelled',
+            ];
+        });
     }
 
-    public function checkedIn(): self
+    /**
+     * Indicate that the booking is checked in.
+     */
+    public function checkedIn()
     {
-        return $this->state([
-            'status' => 'confirmed',
-            'payment_status' => 'paid',
-            'checked_in_at' => now(),
-            'qr_code' => 'data:image/png;base64,' . base64_encode($this->faker->text)
-        ]);
+        return $this->state(function (array $attributes) {
+            return [
+                'status' => 'confirmed',
+                'payment_status' => 'paid',
+                'checked_in_at' => now(),
+            ];
+        });
     }
 
-    public function transferred(): self
+    /**
+     * Indicate that the booking has a pending transfer.
+     */
+    public function pendingTransfer()
     {
-        $transferredTo = User::factory()->create();
-        return $this->state([
-            'transfer_status' => 'completed',
-            'transfer_code' => strtoupper(uniqid()),
-            'transferred_at' => now(),
-            'transferred_to' => $transferredTo->id
-        ]);
+        return $this->state(function (array $attributes) {
+            return [
+                'status' => 'confirmed',
+                'payment_status' => 'paid',
+                'transfer_code' => strtoupper(Str::random(8)),
+                'transfer_status' => 'pending',
+                'transfer_initiated_at' => now(),
+            ];
+        });
     }
 }

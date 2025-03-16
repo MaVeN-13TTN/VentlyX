@@ -22,6 +22,7 @@ return new class extends Migration
             $table->enum('payment_status', ['pending', 'paid', 'failed', 'refunded'])->default('pending');
             $table->string('qr_code_url')->nullable();
             $table->timestamp('checked_in_at')->nullable();
+            $table->timestamp('cancelled_at')->nullable();
             $table->timestamps();
 
             // Add composite and single-column indexes for common query patterns
