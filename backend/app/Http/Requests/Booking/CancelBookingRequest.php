@@ -23,10 +23,7 @@ class CancelBookingRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            // No additional rules needed as we're just validating the booking ID from the route
-            // and checking the booking status in the controller
-        ];
+        return [];
     }
 
     /**
@@ -38,9 +35,24 @@ class CancelBookingRequest extends FormRequest
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
-            $booking = Booking::find($this->route('id'));
-            if ($booking && $booking->status !== 'pending') {
-                $validator->errors()->add('booking', 'Only pending bookings can be cancelled.');
+            $booking = Booking::with('event')->find($this->route('id'));
+
+            if (!$booking) {
+                return;
+            }
+
+            if ($booking->status === 'cancelled') {
+                $validator->errors()->add('booking', 'Booking is already cancelled');
+                return;
+            }
+
+            if ($booking->checked_in_at) {
+                $validator->errors()->add('booking', 'Cannot cancel a booking that has been checked in');
+                return;
+            }
+
+            if ($booking->event && now()->gte($booking->event->start_time)) {
+                $validator->errors()->add('booking', 'Cannot cancel booking after event has started');
             }
         });
     }

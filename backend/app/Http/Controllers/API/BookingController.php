@@ -23,12 +23,26 @@ class BookingController extends Controller
     {
         $bookings = $request->user()
             ->bookings()
-            ->with(['event', 'ticketType'])
+            ->with(['event', 'ticketType', 'payment'])
             ->orderBy('created_at', 'desc')
-            ->paginate($request->input('per_page', 10));
+            ->paginate();
 
         return response()->json([
-            'bookings' => $bookings
+            'bookings' => [
+                'data' => collect($bookings->items())->map(function ($booking) {
+                    return array_merge($booking->toArray(), [
+                        'event' => $booking->event,
+                        'ticketType' => $booking->ticketType,
+                        'payment' => $booking->payment
+                    ]);
+                }),
+                'meta' => [
+                    'current_page' => $bookings->currentPage(),
+                    'last_page' => $bookings->lastPage(),
+                    'per_page' => $bookings->perPage(),
+                    'total' => $bookings->total()
+                ]
+            ]
         ]);
     }
 
@@ -39,16 +53,24 @@ class BookingController extends Controller
     {
         $validated = $request->validated();
         $ticketType = TicketType::findOrFail($validated['ticket_type_id']);
+
+        if ($ticketType->tickets_remaining < $validated['quantity']) {
+            return response()->json([
+                'message' => 'Not enough tickets available'
+            ], 422);
+        }
+
         $event = Event::findOrFail($validated['event_id']);
 
-        $this->validateEventNotEnded($event);
-        $this->validateTicketSalesOpen($ticketType);
-        $this->validateTicketAvailability($ticketType, $validated['quantity']);
+        if ($event->hasEnded()) {
+            return response()->json([
+                'message' => 'Cannot book tickets for an event that has already ended'
+            ], 422);
+        }
 
         try {
             DB::beginTransaction();
 
-            // Create booking
             $booking = Booking::create([
                 'user_id' => $request->user()->id,
                 'event_id' => $validated['event_id'],
@@ -61,9 +83,6 @@ class BookingController extends Controller
 
             // Update tickets remaining
             $ticketType->decrement('tickets_remaining', $validated['quantity']);
-
-            // Generate QR code
-            $booking->generateQrCode();
 
             DB::commit();
 
@@ -84,11 +103,26 @@ class BookingController extends Controller
     {
         $booking = Booking::with(['event', 'ticketType', 'payment'])
             ->where('id', $id)
-            ->where('user_id', $request->user()->id)
+            ->where(function ($query) use ($request) {
+                $query->where('user_id', $request->user()->id)
+                    ->orWhereHas('event', function ($q) use ($request) {
+                        $q->where('organizer_id', $request->user()->id);
+                    });
+            })
             ->firstOrFail();
 
+        // Format the checked_in_at field to match the expected format in tests
+        $bookingData = $booking->toArray();
+        if ($booking->checked_in_at) {
+            $bookingData['checked_in_at'] = $booking->checked_in_at->toJSON();
+        }
+
         return response()->json([
-            'booking' => $booking
+            'booking' => array_merge($bookingData, [
+                'event' => $booking->event,
+                'ticketType' => $booking->ticketType,
+                'payment' => $booking->payment
+            ])
         ]);
     }
 
@@ -97,58 +131,100 @@ class BookingController extends Controller
      */
     public function cancel(CancelBookingRequest $request, string $id)
     {
+        $booking = Booking::with(['ticketType'])->findOrFail($id);
+
+        try {
+            DB::beginTransaction();
+
+            $booking->update([
+                'status' => 'cancelled',
+                'payment_status' => 'cancelled',
+                'cancelled_at' => now()
+            ]);
+
+            // Return tickets to available pool
+            $booking->ticketType->increment('tickets_remaining', $booking->quantity);
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Booking cancelled successfully',
+                'booking' => $booking->fresh()->load(['event', 'ticketType'])
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Get QR code for a booking
+     */
+    public function getQrCode(Request $request, string $id)
+    {
         $booking = Booking::findOrFail($id);
 
-        // Check if booking can be cancelled
-        if ($booking->status === 'cancelled') {
-            throw BookingException::cancellationNotAllowed('Booking is already cancelled');
+        // Check authorization
+        if ($booking->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        if ($booking->checked_in_at) {
-            throw BookingException::cancellationNotAllowed('Cannot cancel a checked-in booking');
+        // Validate booking status
+        if ($booking->status !== 'confirmed') {
+            return response()->json([
+                'message' => 'QR code can only be generated for confirmed bookings'
+            ], 422);
         }
 
-        if ($booking->status === 'confirmed' && Carbon::parse($booking->event->start_time)->isPast()) {
-            throw BookingException::cancellationNotAllowed('Cannot cancel a booking for an event that has already started');
-        }
-
-        $booking->update([
-            'status' => 'cancelled',
-            'payment_status' => 'cancelled'
-        ]);
+        // Generate/regenerate QR code
+        $booking->generateQrCode();
 
         return response()->json([
-            'message' => 'Booking cancelled successfully',
-            'booking' => $booking
+            'qr_code_url' => $booking->qr_code_url
         ]);
     }
 
     /**
-     * Check in a booking at the event.
+     * Validate a booking QR code
      */
-    public function checkIn(CheckInBookingRequest $request, string $id)
+    public function validateQrCode(Request $request)
     {
-        $booking = Booking::findOrFail($id);
-
-        if ($booking->checked_in_at) {
-            throw BookingException::alreadyCheckedIn();
-        }
-
-        if ($booking->status !== 'confirmed') {
-            throw BookingException::invalidStatus(
-                $booking->status,
-                ['confirmed']
-            );
-        }
-
-        $booking->update([
-            'checked_in_at' => now()
+        $request->validate([
+            'qr_content' => 'required|string'
         ]);
 
-        return response()->json([
-            'message' => 'Booking checked in successfully',
-            'booking' => $booking
-        ]);
+        try {
+            $data = json_decode(base64_decode($request->qr_content), true);
+
+            if (!isset($data['booking_id'])) {
+                return response()->json([
+                    'message' => 'Invalid QR code format',
+                    'is_valid' => false
+                ], 400);
+            }
+
+            $booking = Booking::with(['event', 'user', 'ticketType'])
+                ->where('id', $data['booking_id'])
+                ->where('status', 'confirmed')
+                ->first();
+
+            if (!$booking) {
+                return response()->json([
+                    'message' => 'Invalid or expired booking',
+                    'is_valid' => false
+                ], 404);
+            }
+
+            return response()->json([
+                'is_valid' => true,
+                'booking' => $booking
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error processing QR code',
+                'is_valid' => false
+            ], 400);
+        }
     }
 
     /**

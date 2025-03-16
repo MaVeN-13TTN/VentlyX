@@ -75,39 +75,29 @@ class CheckInController extends Controller
     /**
      * Check-in an attendee for the event
      */
-    public function checkIn(Request $request, string $bookingId)
+    public function checkIn(Request $request, string $id)
     {
-        $booking = Booking::with('event')->findOrFail($bookingId);
+        $booking = Booking::with(['event', 'ticketType'])->findOrFail($id);
 
-        // Ensure the user is authorized to check in for this event
-        if ($request->user()->id !== $booking->event->organizer_id && !$request->user()->hasRole('Admin')) {
-            return response()->json(['message' => 'Unauthorized to check in attendees for this event'], 403);
+        // Check if user is organizer of the event or admin
+        if (!$request->user()->hasRole('admin') && $request->user()->id !== $booking->event->organizer_id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        // Validate booking status
-        if ($booking->status !== 'confirmed') {
-            return response()->json([
-                'message' => 'Cannot check in: booking is not confirmed'
-            ], 400);
-        }
+        try {
+            // Update the booking with checked_in_by before calling checkIn
+            $booking->checked_in_by = $request->user()->id;
+            $booking->checkIn();
 
-        // Check if already checked in
-        if ($booking->checked_in_at) {
             return response()->json([
-                'message' => 'Attendee already checked in',
-                'checked_in_at' => $booking->checked_in_at
+                'message' => 'Booking checked in successfully',
+                'booking' => $booking->fresh()
             ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage()
+            ], 422);
         }
-
-        // Update booking with check-in time
-        $booking->checked_in_at = now();
-        $booking->checked_in_by = $request->user()->id;
-        $booking->save();
-
-        return response()->json([
-            'message' => 'Attendee successfully checked in',
-            'booking' => $booking
-        ]);
     }
 
     /**
