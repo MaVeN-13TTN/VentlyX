@@ -88,8 +88,8 @@ class BookingTest extends TestCase
         $booking->generateQrCode();
 
         $this->assertNotNull($booking->qr_code_url);
-        // Check that the QR code URL follows the expected pattern
-        $this->assertMatchesRegularExpression('/^qr_codes\/\d+_\d+\.png$/', $booking->qr_code_url);
+        // Check that the QR code URL follows the expected pattern with the random string
+        $this->assertMatchesRegularExpression('/^qr_codes\/\d+_\d+_[a-zA-Z0-9]{8}\.png$/', $booking->qr_code_url);
     }
 
     public function test_booking_can_be_checked_in()

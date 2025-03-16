@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class Booking extends Model
 {
@@ -92,8 +93,9 @@ class Booking extends Model
             'timestamp' => now()->timestamp
         ];
 
-        // Generate unique filename using timestamp
-        $filename = "qr_codes/{$this->id}_{$data['timestamp']}.png";
+        // Generate unique filename using timestamp and a random string to ensure uniqueness
+        $randomString = Str::random(8);
+        $filename = "qr_codes/{$this->id}_{$data['timestamp']}_{$randomString}.png";
 
         // Generate and save QR code
         Storage::disk('public')->put(
