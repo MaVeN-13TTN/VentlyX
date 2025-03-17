@@ -1,26 +1,67 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
+import { onMounted, ref } from 'vue';
+import { useAuthStore } from './stores/auth';
+import MainLayout from './layouts/MainLayout.vue';
+
+const authStore = useAuthStore();
+const isLoading = ref(true);
+const hasError = ref(false);
+
+// On app load, try to fetch the current user
+onMounted(async () => {
+  try {
+    if (authStore.isAuthenticated) {
+      try {
+        await authStore.fetchCurrentUser();
+      } catch (error) {
+        console.error('Failed to fetch current user:', error);
+      }
+    }
+  } catch (error) {
+    console.error('Error initializing application:', error);
+    hasError.value = true;
+  } finally {
+    isLoading.value = false;
+  }
+});
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
-
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
-
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-      </nav>
-    </div>
-  </header>
-
-  <RouterView />
+  <div v-if="isLoading" class="min-h-screen flex items-center justify-center bg-background-light dark:bg-background-dark">
+    <p class="text-text-light dark:text-text-dark">Loading...</p>
+  </div>
+  <div v-else-if="hasError" class="min-h-screen flex items-center justify-center bg-background-light dark:bg-background-dark">
+    <p class="text-accent-pink">There was an error loading the application. Please try again later.</p>
+  </div>
+  <MainLayout v-else>
+    <RouterView />
+  </MainLayout>
 </template>
 
-<style scoped>
+<style>
+/* Define CSS variables for our colors */
+:root {
+  --primary: #FF6B00;
+  --secondary: #FFD700;
+  --accent-pink: #FF1493;
+  --accent-blue: #00AEEF;
+  --bg-light: #FFF4E1;
+  --text-light: #222222;
+  
+  /* Dark theme variables will be applied via Tailwind's dark mode classes */
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background-color: var(--bg-light);
+  color: var(--text-light);
+  line-height: 1.6;
+}
+
+/* Rest of existing styles */
 header {
   line-height: 1.5;
   max-height: 100vh;
@@ -39,7 +80,7 @@ nav {
 }
 
 nav a.router-link-exact-active {
-  color: var(--color-text);
+  color: var(--primary);
 }
 
 nav a.router-link-exact-active:hover {
