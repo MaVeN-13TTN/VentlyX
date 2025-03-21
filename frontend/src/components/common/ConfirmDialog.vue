@@ -1,63 +1,98 @@
+<template>
+  <BaseDialog 
+    v-model="modelValue"
+    :title="title"
+    :size="size"
+    :show-cancel-button="true" 
+    :show-confirm-button="true"
+    :cancel-text="cancelText"
+    :confirm-text="confirmText"
+    :confirm-disabled="loading"
+    @confirm="handleConfirm"
+  >
+    <div class="text-text-light/80 dark:text-text-dark/80">
+      <p v-if="message" class="mb-4">{{ message }}</p>
+      <slot></slot>
+    </div>
+    
+    <template #footer>
+      <div class="flex justify-end gap-3">
+        <BaseButton
+          v-if="showCancel"
+          variant="outline"
+          size="md"
+          :disabled="loading"
+          @click="$emit('update:modelValue', false)"
+        >
+          {{ cancelText }}
+        </BaseButton>
+        
+        <BaseButton
+          v-if="showConfirm"
+          :variant="type === 'danger' ? 'danger' : 'primary'"
+          size="md"
+          :loading="loading"
+          @click="handleConfirm"
+        >
+          {{ confirmText }}
+        </BaseButton>
+      </div>
+    </template>
+  </BaseDialog>
+</template>
+
 <script setup lang="ts">
+import { ref } from 'vue';
 import BaseDialog from './BaseDialog.vue';
 import BaseButton from './BaseButton.vue';
 
-interface Props {
-  modelValue: boolean;
-  title: string;
-  message: string;
-  confirmText?: string;
-  cancelText?: string;
-  confirmVariant?: 'primary' | 'danger';
-  loading?: boolean;
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  confirmText: 'Confirm',
-  cancelText: 'Cancel',
-  confirmVariant: 'primary',
-  loading: false
+const props = defineProps({
+  modelValue: {
+    type: Boolean,
+    default: false
+  },
+  title: {
+    type: String,
+    default: 'Confirm Action'
+  },
+  message: {
+    type: String,
+    default: 'Are you sure you want to proceed with this action?'
+  },
+  type: {
+    type: String,
+    default: 'primary',
+    validator: (value: string) => ['primary', 'danger'].includes(value)
+  },
+  size: {
+    type: String,
+    default: 'md'
+  },
+  cancelText: {
+    type: String,
+    default: 'Cancel'
+  },
+  confirmText: {
+    type: String,
+    default: 'Confirm'
+  },
+  loading: {
+    type: Boolean,
+    default: false
+  },
+  showCancel: {
+    type: Boolean,
+    default: true
+  },
+  showConfirm: {
+    type: Boolean,
+    default: true
+  }
 });
 
-const emit = defineEmits(['update:modelValue', 'confirm', 'cancel']);
+const emit = defineEmits(['update:modelValue', 'confirm']);
 
 const handleConfirm = () => {
   emit('confirm');
 };
-
-const handleCancel = () => {
-  emit('update:modelValue', false);
-  emit('cancel');
-};
 </script>
-
-<template>
-  <BaseDialog
-    v-model="props.modelValue"
-    :title="props.title"
-    :prevent-close="props.loading"
-    @close="handleCancel"
-  >
-    <p class="text-sm text-gray-500">
-      {{ props.message }}
-    </p>
-
-    <template #footer>
-      <BaseButton
-        variant="outline"
-        :disabled="props.loading"
-        @click="handleCancel"
-      >
-        {{ props.cancelText }}
-      </BaseButton>
-      <BaseButton
-        :variant="props.confirmVariant"
-        :loading="props.loading"
-        :disabled="props.loading"
-        @click="handleConfirm"
-      >
-        {{ props.confirmText }}
-      </BaseButton>
-    </template>
-  </BaseDialog>
-</template>
