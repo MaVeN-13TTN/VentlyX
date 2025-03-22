@@ -1,17 +1,17 @@
 <template>
   <div class="min-h-screen bg-background-light dark:bg-background-dark">
     <!-- Hero Section -->
-    <div class="relative overflow-hidden">
+    <div class="relative overflow-hidden min-h-screen flex items-center rounded-3xl pt-16"> <!-- Added pt-16 for header space -->
       <!-- Hero background with animated gradient -->
-      <div class="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 dark:from-primary/10 dark:to-secondary/10"></div>
+      <div class="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 dark:from-primary/10 dark:to-secondary/10 rounded-b-3xl"></div>
       <div class="absolute inset-0 opacity-20">
         <div class="absolute -inset-[10%] top-1/3 left-2/3 w-96 h-96 bg-accent-pink rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
         <div class="absolute -inset-[10%] top-1/4 right-2/3 w-96 h-96 bg-secondary rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
         <div class="absolute -inset-[10%] bottom-1/3 left-1/3 w-96 h-96 bg-accent-blue rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000"></div>
       </div>
       
-      <div class="container mx-auto py-28 lg:py-32 relative center-content">
-        <div class="text-center max-w-3xl">
+      <div class="container mx-auto relative center-content w-full mt-10"> <!-- Added mt-10 for extra breathing room -->
+        <div class="text-center max-w-3xl mx-auto p-6 bg-white/5 dark:bg-background-dark/5 backdrop-blur-sm rounded-2xl border border-white/10 dark:border-gray-800/10 shadow-xl">
           <h1 class="text-5xl lg:text-6xl font-bold mb-6 text-text-light dark:text-text-dark leading-tight">
             Find and Book<br/><span class="bg-gradient-to-r from-primary to-accent-pink bg-clip-text text-transparent">Amazing Events</span>
           </h1>
@@ -21,7 +21,7 @@
           <div class="flex flex-wrap gap-4 justify-center">
             <router-link 
               to="/events" 
-              class="group bg-gradient-to-r from-primary to-secondary text-white px-8 py-4 rounded-lg font-medium hover:shadow-lg transition-all duration-300 flex items-center space-x-2"
+              class="group bg-gradient-to-r from-primary to-secondary text-white px-8 py-4 rounded-full font-medium hover:shadow-lg transition-all duration-300 flex items-center space-x-2"
             >
               <span>Browse Events</span>
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform group-hover:translate-x-1 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -30,7 +30,7 @@
             </router-link>
             <router-link 
               to="/register" 
-              class="bg-transparent border-2 border-primary text-primary dark:text-dark-primary dark:border-dark-primary px-8 py-4 rounded-lg font-medium hover:bg-primary/5 dark:hover:bg-dark-primary/5 transition-all duration-300"
+              class="bg-transparent border-2 border-primary text-primary dark:text-dark-primary dark:border-dark-primary px-8 py-4 rounded-full font-medium hover:bg-primary/5 dark:hover:bg-dark-primary/5 transition-all duration-300"
             >
               Create Account
             </router-link>
@@ -42,7 +42,7 @@
           <div class="relative w-80 h-80">
             <div class="absolute inset-0 rounded-full bg-gradient-to-br from-secondary/30 to-accent-pink/30 animate-pulse"></div>
             <div class="absolute inset-4 rounded-full bg-gradient-to-tr from-primary/30 to-accent-blue/30 animate-pulse animation-delay-1000"></div>
-            <div class="absolute inset-8 rounded-full bg-white dark:bg-background-dark/80 flex items-center justify-center">
+            <div class="absolute inset-8 rounded-full bg-white dark:bg-background-dark/80 flex items-center justify-center shadow-2xl">
               <div class="text-5xl font-bold bg-gradient-to-r from-primary to-accent-pink bg-clip-text text-transparent">
                 VX
               </div>
@@ -68,8 +68,8 @@
       
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <!-- Event Card 1 -->
-        <div class="group bg-white dark:bg-background-dark/50 rounded-xl shadow-md overflow-hidden transform hover:-translate-y-2 transition-all duration-300 border border-gray-100 dark:border-gray-800">
-          <div class="relative h-48 overflow-hidden">
+        <div class="group bg-white dark:bg-background-dark/50 rounded-2xl shadow-md overflow-hidden transform hover:-translate-y-2 transition-all duration-300 border border-gray-100 dark:border-gray-800">
+          <div class="relative h-48 overflow-hidden rounded-t-2xl">
             <div class="absolute inset-0 bg-gradient-to-br from-accent-pink to-accent-blue group-hover:scale-110 transition-transform duration-500"></div>
             <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <span class="bg-black/60 text-white px-4 py-2 rounded-lg">View Details</span>
@@ -84,7 +84,7 @@
             <p class="text-text-light/70 dark:text-text-dark/70 mb-4 line-clamp-2">Experience an unforgettable night of live music performances from top artists.</p>
             <div class="flex justify-between items-center">
               <span class="text-primary dark:text-dark-primary font-medium">$25.00</span>
-              <button class="bg-primary dark:bg-dark-primary text-white px-4 py-2 rounded-lg hover:shadow-md transition-shadow duration-200">
+              <button class="bg-primary dark:bg-dark-primary text-white px-4 py-2 rounded-full hover:shadow-md transition-shadow duration-200">
                 Book Now
               </button>
             </div>
@@ -92,8 +92,8 @@
         </div>
         
         <!-- Event Card 2 -->
-        <div class="group bg-white dark:bg-background-dark/50 rounded-xl shadow-md overflow-hidden transform hover:-translate-y-2 transition-all duration-300 border border-gray-100 dark:border-gray-800">
-          <div class="relative h-48 overflow-hidden">
+        <div class="group bg-white dark:bg-background-dark/50 rounded-2xl shadow-md overflow-hidden transform hover:-translate-y-2 transition-all duration-300 border border-gray-100 dark:border-gray-800">
+          <div class="relative h-48 overflow-hidden rounded-t-2xl">
             <div class="absolute inset-0 bg-gradient-to-br from-secondary to-accent-blue group-hover:scale-110 transition-transform duration-500"></div>
             <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <span class="bg-black/60 text-white px-4 py-2 rounded-lg">View Details</span>
@@ -108,7 +108,7 @@
             <p class="text-text-light/70 dark:text-text-dark/70 mb-4 line-clamp-2">Connect with industry leaders and discover the latest technological innovations.</p>
             <div class="flex justify-between items-center">
               <span class="text-primary dark:text-dark-primary font-medium">$30.00</span>
-              <button class="bg-primary dark:bg-dark-primary text-white px-4 py-2 rounded-lg hover:shadow-md transition-shadow duration-200">
+              <button class="bg-primary dark:bg-dark-primary text-white px-4 py-2 rounded-full hover:shadow-md transition-shadow duration-200">
                 Book Now
               </button>
             </div>
@@ -116,8 +116,8 @@
         </div>
         
         <!-- Event Card 3 -->
-        <div class="group bg-white dark:bg-background-dark/50 rounded-xl shadow-md overflow-hidden transform hover:-translate-y-2 transition-all duration-300 border border-gray-100 dark:border-gray-800">
-          <div class="relative h-48 overflow-hidden">
+        <div class="group bg-white dark:bg-background-dark/50 rounded-2xl shadow-md overflow-hidden transform hover:-translate-y-2 transition-all duration-300 border border-gray-100 dark:border-gray-800">
+          <div class="relative h-48 overflow-hidden rounded-t-2xl">
             <div class="absolute inset-0 bg-gradient-to-br from-accent-pink to-secondary group-hover:scale-110 transition-transform duration-500"></div>
             <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <span class="bg-black/60 text-white px-4 py-2 rounded-lg">View Details</span>
@@ -132,7 +132,7 @@
             <p class="text-text-light/70 dark:text-text-dark/70 mb-4 line-clamp-2">Enhance your storytelling skills with guidance from published authors.</p>
             <div class="flex justify-between items-center">
               <span class="text-primary dark:text-dark-primary font-medium">$15.00</span>
-              <button class="bg-primary dark:bg-dark-primary text-white px-4 py-2 rounded-lg hover:shadow-md transition-shadow duration-200">
+              <button class="bg-primary dark:bg-dark-primary text-white px-4 py-2 rounded-full hover:shadow-md transition-shadow duration-200">
                 Book Now
               </button>
             </div>
@@ -212,7 +212,7 @@
           <p class="text-xl mb-10 text-text-light/80 dark:text-text-dark/80">Join thousands of people who are already using VentlyX to find and attend the best events near them.</p>
           <router-link 
             to="/register" 
-            class="inline-flex items-center bg-gradient-to-r from-primary to-accent-pink text-white px-8 py-4 rounded-lg font-medium hover:shadow-lg shadow-primary/20 transition-all duration-300"
+            class="inline-flex items-center bg-gradient-to-r from-primary to-accent-pink text-white px-8 py-4 rounded-full font-medium hover:shadow-lg shadow-primary/20 transition-all duration-300"
           >
             <span>Get Started Today</span>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">

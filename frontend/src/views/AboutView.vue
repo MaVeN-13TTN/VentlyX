@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-background-light dark:bg-background-dark">
     <!-- Hero Section -->
-    <div class="relative overflow-hidden">
+    <div class="relative overflow-hidden rounded-2xl">
       <!-- Gradient background -->
       <div class="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 dark:from-primary/10 dark:to-secondary/10"></div>
       
