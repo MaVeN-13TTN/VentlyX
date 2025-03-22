@@ -28,13 +28,17 @@ onMounted(async () => {
 
 <template>
   <div v-if="isLoading" class="min-h-screen flex items-center justify-center bg-background-light dark:bg-background-dark">
-    <p class="text-text-light dark:text-text-dark">Loading...</p>
+    <p class="text-text-light dark:text-text-dark text-lg">Loading...</p>
   </div>
   <div v-else-if="hasError" class="min-h-screen flex items-center justify-center bg-background-light dark:bg-background-dark">
-    <p class="text-accent-pink">There was an error loading the application. Please try again later.</p>
+    <p class="text-accent-pink text-lg">There was an error loading the application. Please try again later.</p>
   </div>
   <MainLayout v-else>
-    <RouterView />
+    <RouterView v-slot="{ Component }">
+      <transition name="page" mode="out-in">
+        <component :is="Component" />
+      </transition>
+    </RouterView>
   </MainLayout>
 </template>
 
@@ -67,115 +71,85 @@ body {
   background-color: var(--bg-light);
   color: var(--text-light);
   line-height: 1.6;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  transition: background-color 0.4s ease, color 0.4s ease;
+  font-size: 16px; /* Increased base font size */
 }
 
 #app {
-  max-width: 100%;
   width: 100%;
-  margin: 0;
-  padding: 0;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  align-items: center;
 }
 
-/* Centered container classes to override Tailwind's defaults if needed */
+/* Global container styles */
 .container {
   width: 100%;
-  max-width: 100%;
   margin-left: auto;
   margin-right: auto;
-  padding-left: 0;
-  padding-right: 0;
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
 
 @media (min-width: 640px) {
   .container {
-    padding-left: 0;
-    padding-right: 0;
+    max-width: 640px;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 768px;
   }
 }
 
 @media (min-width: 1024px) {
   .container {
-    padding-left: 0;
-    padding-right: 0;
+    max-width: 1024px;
+    padding-left: 2rem;
+    padding-right: 2rem;
   }
 }
 
-/* For explicitly centering content */
-.content-centered {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
+@media (min-width: 1280px) {
+  .container {
+    max-width: 1280px;
+  }
 }
 
-/* Rest of existing styles */
-header {
-  line-height: 1.5;
-  max-height: 100vh;
+/* Increase text sizes */
+h1 { font-size: 2.5rem; }
+h2 { font-size: 2rem; }
+h3 { font-size: 1.75rem; }
+h4 { font-size: 1.5rem; }
+p { font-size: 1.125rem; }
+
+/* Make form inputs larger */
+input, select, textarea {
+  font-size: 1.125rem !important;
+  padding: 0.75rem 1rem !important;
 }
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
+button {
+  font-size: 1.125rem !important;
+  padding: 0.75rem 1.5rem !important;
 }
 
-nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
+/* Page transition animations */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.2s ease;
 }
 
-nav a.router-link-exact-active {
-  color: var(--primary);
-}
-
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
-}
-
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
-}
-
-nav a:first-of-type {
-  border: 0;
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
 }
 
 @media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
-
-    padding: 1rem 0;
-    margin-top: 1rem;
+  body {
+    font-size: 18px; /* Even larger font size on desktop */
   }
 }
 </style>

@@ -11,7 +11,8 @@
   /* Common variables */
   --color-border: rgba(34, 34, 34, 0.1);
   --color-border-hover: rgba(34, 34, 34, 0.2);
-  --section-gap: 160px;
+  --section-gap: 4rem; /* Reduced from 160px */
+  --content-width: 90%; /* New variable for content width */
 }
 
 /* Dark theme overrides */
@@ -45,8 +46,36 @@ body {
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
     Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-  font-size: 15px;
+  font-size: 16px;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Base styles for common elements */
+.section {
+  padding: 2rem 0;
+}
+
+.container {
+  width: var(--content-width);
+  margin: 0 auto;
+  max-width: 1600px;
+}
+
+/* Responsive adjustments */
+@media (min-width: 768px) {
+  :root {
+    --section-gap: 6rem;
+  }
+
+  body {
+    font-size: 18px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --section-gap: 8rem;
+  }
 }

@@ -38,13 +38,13 @@ const isActive = (path: string) => {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col bg-background-light dark:bg-background-dark w-full">
+  <div class="min-h-screen flex flex-col bg-background-light dark:bg-background-dark">
     <!-- Toast Notifications -->
     <ToastNotifications />
     
     <!-- Navigation -->
-    <nav class="bg-white/80 dark:bg-background-dark/90 backdrop-blur-md shadow-sm sticky top-0 z-50 w-full">
-      <div class="w-full px-4 py-8">
+    <nav class="bg-white/80 dark:bg-background-dark/90 backdrop-blur-md shadow-sm sticky top-0 z-50">
+      <div class="container mx-auto px-2 py-3">
         <div class="flex justify-between h-16">
           <!-- Logo and desktop navigation -->
           <div class="flex">
@@ -230,14 +230,14 @@ const isActive = (path: string) => {
 
     <!-- Page content -->
     <main class="flex-grow w-full">
-      <div class="w-full">
+      <div class="container mx-auto px-2 py-4">
         <slot></slot>
       </div>
     </main>
 
     <!-- Footer -->
-    <footer class="bg-white dark:bg-background-dark/30 border-t border-gray-200 dark:border-gray-800 mt-auto backdrop-blur-sm w-full">
-      <div class="w-full px-4 py-8">
+    <footer class="bg-white dark:bg-background-dark/30 border-t border-gray-200 dark:border-gray-800 mt-auto backdrop-blur-sm">
+      <div class="container mx-auto px-2 py-4">
         <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
           <div class="flex items-center space-x-3">
             <div class="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center shadow-sm">

@@ -7,13 +7,11 @@ export default {
   theme: {
     container: {
       center: true,
-      padding: "0", // Remove padding from container
-      screens: {
-        sm: "100%",
-        md: "100%",
-        lg: "100%",
-        xl: "100%",
-        "2xl": "100%",
+      padding: {
+        DEFAULT: "0.5rem",
+        sm: "1rem",
+        lg: "1.5rem",
+        xl: "2rem",
       },
     },
     extend: {
@@ -105,6 +103,24 @@ export default {
           maxWidth: "100%",
           margin: "0 auto",
           padding: "0",
+        },
+        ".container": {
+          maxWidth: "100%",
+          "@screen sm": {
+            maxWidth: "90%",
+          },
+          "@screen md": {
+            maxWidth: "90%",
+          },
+          "@screen lg": {
+            maxWidth: "90%",
+          },
+          "@screen xl": {
+            maxWidth: "1440px",
+          },
+          "@screen 2xl": {
+            maxWidth: "1600px",
+          },
         },
       });
     },
