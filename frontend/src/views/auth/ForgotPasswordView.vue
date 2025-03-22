@@ -38,18 +38,18 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
+  <div class="min-h-screen bg-background-light dark:bg-background-dark flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8 bg-white dark:bg-background-dark/30 p-8 rounded-lg shadow-md">
       <div>
-        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        <h2 class="mt-6 text-center text-3xl font-extrabold text-text-light dark:text-text-dark">
           Reset your password
         </h2>
-        <p class="mt-2 text-center text-sm text-gray-600">
+        <p class="mt-2 text-center text-sm text-text-light/70 dark:text-text-dark/70">
           Enter your email address and we'll send you instructions to reset your password.
         </p>
       </div>
 
-      <div v-if="error" class="rounded-md bg-red-50 p-4">
+      <div v-if="error" class="rounded-md bg-red-50 dark:bg-red-900/20 p-4">
         <div class="flex">
           <div class="flex-shrink-0">
             <!-- Error icon -->
@@ -58,7 +58,7 @@ const handleSubmit = async () => {
             </svg>
           </div>
           <div class="ml-3">
-            <h3 class="text-sm font-medium text-red-800">{{ error }}</h3>
+            <h3 class="text-sm font-medium text-red-800 dark:text-red-200">{{ error }}</h3>
           </div>
         </div>
       </div>
@@ -73,6 +73,7 @@ const handleSubmit = async () => {
             autocomplete="email"
             :error="error"
             placeholder="Enter your email address"
+            class="dark:border-gray-700 dark:bg-background-dark/50 dark:text-text-dark dark:placeholder-gray-400"
           />
         </div>
 
@@ -82,6 +83,7 @@ const handleSubmit = async () => {
             variant="primary"
             :loading="loading"
             block
+            class="bg-gradient-to-r from-primary to-accent-pink hover:from-primary-600 hover:to-accent-pink/90 focus:ring-primary dark:focus:ring-dark-primary"
           >
             Send reset instructions
           </BaseButton>
@@ -90,7 +92,7 @@ const handleSubmit = async () => {
         <div class="text-sm text-center">
           <RouterLink
             to="/login"
-            class="font-medium text-primary-600 hover:text-primary-500"
+            class="font-medium text-primary dark:text-dark-primary hover:text-primary-600 dark:hover:text-dark-primary/80"
           >
             Back to login
           </RouterLink>

@@ -51,20 +51,20 @@ const handleSubmit = async () => {
   <div class="min-h-screen bg-background-light dark:bg-background-dark">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <div class="max-w-md mx-auto">
-        <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
+        <div class="max-w-md w-full space-y-8 bg-white dark:bg-background-dark/30 p-8 rounded-lg shadow-md">
           <div>
-            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            <h2 class="mt-6 text-center text-3xl font-extrabold text-text-light dark:text-text-dark">
               Sign in to your account
             </h2>
-            <p class="mt-2 text-center text-sm text-gray-600">
+            <p class="mt-2 text-center text-sm text-text-light/70 dark:text-text-dark/70">
               Or
-              <RouterLink :to="{ name: 'register' }" class="font-medium text-primary-600 hover:text-primary-500">
+              <RouterLink :to="{ name: 'register' }" class="font-medium text-primary dark:text-dark-primary hover:text-primary-600 dark:hover:text-dark-primary/80">
                 create a new account
               </RouterLink>
             </p>
           </div>
           
-          <div v-if="error" class="bg-red-50 p-4 rounded-md">
+          <div v-if="error" class="bg-red-50 dark:bg-red-900/20 p-4 rounded-md">
             <div class="flex">
               <div class="flex-shrink-0">
                 <!-- Error icon -->
@@ -91,7 +91,7 @@ const handleSubmit = async () => {
                   autocomplete="email" 
                   required 
                   v-model="email"
-                  class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm" 
+                  class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-text-light dark:text-text-dark bg-white dark:bg-background-dark/50 rounded-t-md focus:outline-none focus:ring-primary dark:focus:ring-dark-primary focus:border-primary dark:focus:border-dark-primary focus:z-10 sm:text-sm" 
                   placeholder="Email address"
                 />
               </div>
@@ -104,7 +104,7 @@ const handleSubmit = async () => {
                   autocomplete="current-password" 
                   required 
                   v-model="password"
-                  class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm" 
+                  class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-text-light dark:text-text-dark bg-white dark:bg-background-dark/50 rounded-b-md focus:outline-none focus:ring-primary dark:focus:ring-dark-primary focus:border-primary dark:focus:border-dark-primary focus:z-10 sm:text-sm" 
                   placeholder="Password"
                 />
               </div>
@@ -117,15 +117,15 @@ const handleSubmit = async () => {
                   name="remember-me" 
                   type="checkbox" 
                   v-model="remember"
-                  class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded" 
+                  class="h-4 w-4 text-primary dark:text-dark-primary focus:ring-primary dark:focus:ring-dark-primary border-gray-300 dark:border-gray-700 rounded" 
                 />
-                <label for="remember-me" class="ml-2 block text-sm text-gray-900">
+                <label for="remember-me" class="ml-2 block text-sm text-text-light dark:text-text-dark">
                   Remember me
                 </label>
               </div>
 
               <div class="text-sm">
-                <RouterLink :to="{ name: 'forgot-password' }" class="font-medium text-primary-600 hover:text-primary-500">
+                <RouterLink :to="{ name: 'forgot-password' }" class="font-medium text-primary dark:text-dark-primary hover:text-primary-600 dark:hover:text-dark-primary/80">
                   Forgot your password?
                 </RouterLink>
               </div>
@@ -134,7 +134,7 @@ const handleSubmit = async () => {
             <div>
               <button 
                 type="submit" 
-                class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-r from-primary to-accent-pink hover:from-primary-600 hover:to-accent-pink/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary dark:focus:ring-dark-primary transition-all duration-200"
                 :disabled="loading"
               >
                 <span class="absolute left-0 inset-y-0 flex items-center pl-3">

@@ -1,40 +1,33 @@
 <template>
   <div 
     :class="[
-      'inline-block rounded-full animate-spin',
-      sizeClasses
+      'animate-spin rounded-full border-t-transparent',
+      spinnerClasses,
+      borderColor
     ]"
-    :style="{ borderColor: borderColor, borderTopColor: 'transparent' }"
     role="status"
     aria-label="Loading"
-  ></div>
+  >
+    <span class="sr-only">Loading...</span>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
 
-const props = defineProps({
-  size: {
-    type: String,
-    default: 'md',
-    validator: (value: string) => ['xs', 'sm', 'md', 'lg', 'xl'].includes(value)
-  },
-  color: {
-    type: String,
-    default: 'primary',
-    validator: (value: string) => ['primary', 'secondary', 'white', 'gray', 'black'].includes(value)
-  },
-  thickness: {
-    type: String,
-    default: 'normal',
-    validator: (value: string) => ['thin', 'normal', 'thick'].includes(value)
-  }
+const props = withDefaults(defineProps<{
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  color?: 'primary' | 'secondary' | 'white' | 'gray';
+  thickness?: 'normal' | 'thick';
+}>(), {
+  size: 'md',
+  color: 'primary',
+  thickness: 'normal'
 });
 
-// Size classes
-const sizeClasses = computed(() => {
+// Classes for size and thickness
+const spinnerClasses = computed(() => {
   const thicknessClass = {
-    thin: 'border',
     normal: 'border-2',
     thick: 'border-[3px]'
   }[props.thickness];
@@ -51,12 +44,11 @@ const sizeClasses = computed(() => {
 // Border color based on the color prop
 const borderColor = computed(() => {
   switch (props.color) {
-    case 'primary': return 'var(--color-primary)';
-    case 'secondary': return 'var(--color-secondary)';
-    case 'white': return '#FFFFFF';
-    case 'gray': return '#9CA3AF';
-    case 'black': return '#000000';
-    default: return 'var(--color-primary)';
+    case 'primary': return 'border-primary dark:border-dark-primary';
+    case 'secondary': return 'border-secondary dark:border-dark-secondary';
+    case 'white': return 'border-white';
+    case 'gray': return 'border-gray-400 dark:border-gray-500';
+    default: return 'border-primary dark:border-dark-primary';
   }
 });
 </script>

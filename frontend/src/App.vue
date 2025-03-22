@@ -47,8 +47,16 @@ onMounted(async () => {
   --accent-blue: #00AEEF;
   --bg-light: #FFF4E1;
   --text-light: #222222;
-  
-  /* Dark theme variables will be applied via Tailwind's dark mode classes */
+}
+
+/* Dark theme variables */
+.dark {
+  --primary: #FFB800;
+  --secondary: #FF4500;
+  --accent-pink: #FF1493;
+  --accent-blue: #00BFFF;
+  --bg-light: #121212;
+  --text-light: #E0E0E0;
 }
 
 body {
@@ -59,14 +67,56 @@ body {
   background-color: var(--bg-light);
   color: var(--text-light);
   line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  transition: background-color 0.4s ease, color 0.4s ease;
 }
 
 #app {
   max-width: 100%;
+  width: 100%;
   margin: 0;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
+/* Centered container classes to override Tailwind's defaults if needed */
+.container {
+  width: 100%;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+@media (min-width: 640px) {
+  .container {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+/* For explicitly centering content */
+.content-centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+/* Rest of existing styles */
 header {
   line-height: 1.5;
   max-height: 100vh;

@@ -58,21 +58,21 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
+  <div class="min-h-screen bg-background-light dark:bg-background-dark flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8 bg-white dark:bg-background-dark/30 p-8 rounded-lg shadow-md">
       <div>
-        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        <h2 class="mt-6 text-center text-3xl font-extrabold text-text-light dark:text-text-dark">
           Create your account
         </h2>
-        <p class="mt-2 text-center text-sm text-gray-600">
+        <p class="mt-2 text-center text-sm text-text-light/70 dark:text-text-dark/70">
           Already have an account?
-          <RouterLink :to="{ name: 'login' }" class="font-medium text-primary-600 hover:text-primary-500">
+          <RouterLink :to="{ name: 'login' }" class="font-medium text-primary dark:text-dark-primary hover:text-primary-600 dark:hover:text-dark-primary/80">
             Sign in
           </RouterLink>
         </p>
       </div>
       
-      <div v-if="error" class="bg-red-50 p-4 rounded-md">
+      <div v-if="error" class="bg-red-50 dark:bg-red-900/20 p-4 rounded-md">
         <div class="flex">
           <div class="flex-shrink-0">
             <!-- Error icon -->
@@ -92,7 +92,7 @@ const handleSubmit = async () => {
         <div class="space-y-4">
           <!-- Name -->
           <div>
-            <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+            <label for="name" class="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Full Name</label>
             <input 
               id="name" 
               name="name" 
@@ -100,14 +100,14 @@ const handleSubmit = async () => {
               autocomplete="name" 
               required 
               v-model="name"
-              class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" 
+              class="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-text-light dark:text-text-dark bg-white dark:bg-background-dark/50 rounded-md focus:outline-none focus:ring-primary dark:focus:ring-dark-primary focus:border-primary dark:focus:border-dark-primary sm:text-sm" 
               placeholder="Full Name"
             />
           </div>
           
           <!-- Email -->
           <div>
-            <label for="register-email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+            <label for="register-email" class="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Email Address</label>
             <input 
               id="register-email" 
               name="email" 
@@ -115,28 +115,28 @@ const handleSubmit = async () => {
               autocomplete="email" 
               required 
               v-model="email"
-              class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" 
+              class="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-text-light dark:text-text-dark bg-white dark:bg-background-dark/50 rounded-md focus:outline-none focus:ring-primary dark:focus:ring-dark-primary focus:border-primary dark:focus:border-dark-primary sm:text-sm" 
               placeholder="Email address"
             />
           </div>
           
           <!-- Phone Number (optional) -->
           <div>
-            <label for="phone-number" class="block text-sm font-medium text-gray-700 mb-1">Phone Number (optional)</label>
+            <label for="phone-number" class="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Phone Number (optional)</label>
             <input 
               id="phone-number" 
               name="phone_number" 
               type="tel" 
               autocomplete="tel" 
               v-model="phoneNumber"
-              class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" 
+              class="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-text-light dark:text-text-dark bg-white dark:bg-background-dark/50 rounded-md focus:outline-none focus:ring-primary dark:focus:ring-dark-primary focus:border-primary dark:focus:border-dark-primary sm:text-sm" 
               placeholder="Phone number"
             />
           </div>
           
           <!-- Password -->
           <div>
-            <label for="register-password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label for="register-password" class="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Password</label>
             <input 
               id="register-password" 
               name="password" 
@@ -144,14 +144,14 @@ const handleSubmit = async () => {
               autocomplete="new-password" 
               required 
               v-model="password"
-              class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" 
+              class="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-text-light dark:text-text-dark bg-white dark:bg-background-dark/50 rounded-md focus:outline-none focus:ring-primary dark:focus:ring-dark-primary focus:border-primary dark:focus:border-dark-primary sm:text-sm" 
               placeholder="Password (min. 8 characters)"
             />
           </div>
           
           <!-- Password Confirmation -->
           <div>
-            <label for="password-confirmation" class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+            <label for="password-confirmation" class="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Confirm Password</label>
             <input 
               id="password-confirmation" 
               name="password_confirmation" 
@@ -159,7 +159,7 @@ const handleSubmit = async () => {
               autocomplete="new-password" 
               required 
               v-model="passwordConfirmation"
-              class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" 
+              class="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-text-light dark:text-text-dark bg-white dark:bg-background-dark/50 rounded-md focus:outline-none focus:ring-primary dark:focus:ring-dark-primary focus:border-primary dark:focus:border-dark-primary sm:text-sm" 
               placeholder="Confirm password"
             />
           </div>
@@ -168,7 +168,7 @@ const handleSubmit = async () => {
         <div>
           <button 
             type="submit" 
-            class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-r from-primary to-accent-pink hover:from-primary-600 hover:to-accent-pink/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary dark:focus:ring-dark-primary transition-all duration-200"
             :disabled="loading"
           >
             <span class="absolute left-0 inset-y-0 flex items-center pl-3">

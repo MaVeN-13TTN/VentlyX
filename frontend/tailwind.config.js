@@ -3,7 +3,19 @@ import headlessui from "@headlessui/tailwindcss";
 
 export default {
   content: ["./index.html", "./src/**/*.{vue,js,ts,jsx,tsx}"],
+  darkMode: "class", // Explicitly set darkMode to use class strategy
   theme: {
+    container: {
+      center: true,
+      padding: "0", // Remove padding from container
+      screens: {
+        sm: "100%",
+        md: "100%",
+        lg: "100%",
+        xl: "100%",
+        "2xl": "100%",
+      },
+    },
     extend: {
       colors: {
         // Light Theme Colors
@@ -55,7 +67,46 @@ export default {
           },
         },
       },
+      maxWidth: {
+        // Remove the content maxWidth restriction
+        content: "100%",
+      },
+      animation: {
+        fadeIn: "fadeIn 0.3s ease-in-out",
+        "spin-slow": "spin 3s linear infinite",
+        "bounce-slow": "bounce 3s infinite",
+      },
+      keyframes: {
+        fadeIn: {
+          "0%": { opacity: 0, transform: "scale(0.7)" },
+          "100%": { opacity: 1, transform: "scale(1)" },
+        },
+      },
+      transitionTimingFunction: {
+        spring: "cubic-bezier(0.175, 0.885, 0.32, 1.5)",
+      },
     },
   },
-  plugins: [headlessui],
+  corePlugins: {
+    container: true,
+  },
+  plugins: [
+    headlessui,
+    function ({ addComponents }) {
+      addComponents({
+        ".center-content": {
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+        },
+        // Add a full-width container class
+        ".container-full": {
+          width: "100%",
+          maxWidth: "100%",
+          margin: "0 auto",
+          padding: "0",
+        },
+      });
+    },
+  ],
 };

@@ -2,6 +2,8 @@
 import { ref, computed } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import ToastNotifications from '@/components/notifications/ToastNotifications.vue';
+import ThemeSwitcher from '@/components/common/ThemeSwitcher.vue';
 
 const isMenuOpen = ref(false);
 const authStore = useAuthStore();
@@ -36,10 +38,13 @@ const isActive = (path: string) => {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col bg-background-light dark:bg-background-dark">
+  <div class="min-h-screen flex flex-col bg-background-light dark:bg-background-dark w-full">
+    <!-- Toast Notifications -->
+    <ToastNotifications />
+    
     <!-- Navigation -->
-    <nav class="bg-white/80 dark:bg-background-dark/90 backdrop-blur-md shadow-sm sticky top-0 z-50">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <nav class="bg-white/80 dark:bg-background-dark/90 backdrop-blur-md shadow-sm sticky top-0 z-50 w-full">
+      <div class="w-full px-4 py-8">
         <div class="flex justify-between h-16">
           <!-- Logo and desktop navigation -->
           <div class="flex">
@@ -87,7 +92,10 @@ const isActive = (path: string) => {
           </div>
 
           <!-- User menu and mobile menu button -->
-          <div class="flex items-center">
+          <div class="flex items-center space-x-3">
+            <!-- Theme Switcher -->
+            <ThemeSwitcher class="hidden sm:block" />
+
             <div v-if="isAuthenticated" class="hidden sm:ml-6 sm:flex sm:items-center">
               <!-- Profile dropdown -->
               <div class="ml-3 relative">
@@ -171,6 +179,14 @@ const isActive = (path: string) => {
               Admin
             </RouterLink>
           </template>
+          
+          <!-- Theme Switcher in mobile menu -->
+          <div class="block py-2 px-4">
+            <div class="flex items-center">
+              <span class="text-gray-700 dark:text-gray-300 mr-2">Theme:</span>
+              <ThemeSwitcher />
+            </div>
+          </div>
         </div>
         
         <!-- Mobile menu user section -->
@@ -213,15 +229,15 @@ const isActive = (path: string) => {
     </nav>
 
     <!-- Page content -->
-    <main class="flex-grow">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <main class="flex-grow w-full">
+      <div class="w-full">
         <slot></slot>
       </div>
     </main>
 
     <!-- Footer -->
-    <footer class="bg-white dark:bg-background-dark/30 border-t border-gray-200 dark:border-gray-800 mt-auto backdrop-blur-sm">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <footer class="bg-white dark:bg-background-dark/30 border-t border-gray-200 dark:border-gray-800 mt-auto backdrop-blur-sm w-full">
+      <div class="w-full px-4 py-8">
         <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
           <div class="flex items-center space-x-3">
             <div class="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center shadow-sm">
@@ -256,3 +272,7 @@ const isActive = (path: string) => {
     </footer>
   </div>
 </template>
+
+<style>
+/* ... existing code ... */
+</style>
