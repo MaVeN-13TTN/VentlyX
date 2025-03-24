@@ -1,6 +1,6 @@
 <template>
   <div class="group bg-white dark:bg-gray-800 rounded-2xl shadow-md overflow-hidden transform hover:-translate-y-2 transition-all duration-300 border border-gray-100 dark:border-gray-700">
-    <div class="relative h-48 overflow-hidden rounded-t-2xl">
+    <div class="relative h-64 overflow-hidden rounded-t-2xl">
       <div class="absolute inset-0" :class="gradientClass"></div>
       <img v-if="event.image_url" :src="event.image_url" :alt="event.title" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
       <div v-else class="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-700">

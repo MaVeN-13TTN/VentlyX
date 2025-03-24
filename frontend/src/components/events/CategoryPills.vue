@@ -27,12 +27,12 @@ import { ref, watch } from 'vue';
 
 const props = defineProps<{
   categories: string[];
-  initialCategory?: string;
+  initialCategory?: string | null;
 }>();
 
 const emit = defineEmits(['category-change', 'scroll-to-results']);
 
-const activeCategory = ref(props.initialCategory || '');
+const activeCategory = ref<string | null>(props.initialCategory || null);
 
 const selectCategory = (category: string) => {
   activeCategory.value = category;
