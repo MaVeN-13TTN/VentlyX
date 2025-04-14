@@ -18,7 +18,12 @@
     "@headlessui/tailwindcss": "^0.2.2",
     "@headlessui/vue": "^1.7.23",
     "@heroicons/vue": "^2.2.0",
+    "@types/leaflet": "^1.9.17",
+    "@vueform/slider": "^2.1.10",
+    "@vuepic/vue-datepicker": "^11.0.2",
+    "@vueuse/core": "^13.0.0",
     "axios": "^1.8.3",
+    "leaflet": "^1.9.4",
     "pinia": "^3.0.1",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0"

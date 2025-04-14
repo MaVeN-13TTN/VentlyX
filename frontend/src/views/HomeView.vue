@@ -52,21 +52,9 @@
       </div>
     </div>
 
-    <!-- Search and category filters -->
     <div class="container mx-auto py-12">
-      <EventSearch 
-        :initial-query="searchQuery" 
-        @search="handleSearch" 
-      />
-      
-      <CategoryPills 
-        :categories="categories" 
-        :initial-category="selectedCategory" 
-        @category-change="handleCategoryChange" 
-      />
-      
       <!-- Featured Events Section -->
-      <div class="mt-16">
+      <div class="mt-8">
         <div class="flex flex-col md:flex-row justify-between items-center mb-12">
           <h2 class="text-2xl font-bold text-text-light dark:text-text-dark mb-4 md:mb-0">
             <span class="border-b-4 border-primary dark:border-dark-primary pb-2">Featured Events</span>
@@ -86,7 +74,6 @@
         <div v-else-if="featuredEvents.length === 0" class="text-center py-12 bg-white dark:bg-background-dark/50 rounded-2xl shadow-md">
           <p class="text-text-light/70 dark:text-text-dark/70 mb-4">No featured events found</p>
         </div>
-
         <div v-else class="relative overflow-hidden rounded-2xl">
           <!-- Carousel Track -->
           <div 
@@ -107,7 +94,6 @@
               />
             </div>
           </div>
-
           <!-- Navigation Arrows -->
           <button 
             @click="prevSlide" 
@@ -127,7 +113,6 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
           </button>
-
           <!-- Dots Navigation -->
           <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2 z-10">
             <button 
@@ -146,65 +131,11 @@
         </div>
       </div>
 
-      <!-- Filtered Events Section -->
-      <div v-if="selectedCategory" class="mt-16">
+      <!-- Upcoming Events Section -->
+      <div class="mt-16">
         <div class="flex flex-col md:flex-row justify-between items-center mb-12">
           <h2 class="text-2xl font-bold text-text-light dark:text-text-dark mb-4 md:mb-0">
-            <span class="border-b-4 border-primary dark:border-dark-primary pb-2">
-              {{ selectedCategory === 'featured' ? 'Featured Events' : 
-                 selectedCategory === 'upcoming' ? 'Upcoming Events' : 
-                 `${selectedCategory} Events` }}
-            </span>
-          </h2>
-          <button 
-            @click="resetFilters" 
-            class="text-primary dark:text-dark-primary hover:underline flex items-center space-x-1 font-medium"
-          >
-            <span>Show all events</span>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-        
-        <div v-if="isLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <SkeletonLoader v-for="i in 6" :key="i" type="card" :animated="true" />
-        </div>
-        
-        <div v-else-if="events.length === 0" class="text-center py-12 bg-white dark:bg-background-dark/50 rounded-2xl shadow-md">
-          <p class="text-text-light/70 dark:text-text-dark/70 mb-4">No events found in this category</p>
-        </div>
-        
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <EventCard 
-            v-for="(event, index) in events" 
-            :key="event.id" 
-            :event="event" 
-            :color-index="index" 
-          />
-        </div>
-        
-        <!-- Load More button -->
-        <div v-if="events.length > 0 && hasMorePages" class="flex justify-center mt-12">
-          <button 
-            @click="loadMore" 
-            class="bg-white dark:bg-background-dark/50 border border-gray-200 dark:border-gray-700 px-6 py-3 rounded-lg text-text-light/80 dark:text-text-dark/80 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-            :disabled="loadingMore"
-          >
-            <span v-if="loadingMore">Loading...</span>
-            <span v-else>Load More</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Upcoming/Search Results Events Section -->
-      <div 
-        class="mt-16 transition-all duration-300 rounded-2xl" 
-        ref="searchResultsSection"
-      >
-        <div class="flex flex-col md:flex-row justify-between items-center mb-12">
-          <h2 class="text-2xl font-bold text-text-light dark:text-text-dark mb-4 md:mb-0">
-            <span class="border-b-4 border-primary dark:border-dark-primary pb-2">{{ searchQuery ? 'Search Results' : 'Upcoming Events' }}</span>
+            <span class="border-b-4 border-primary dark:border-dark-primary pb-2">Upcoming Events</span>
           </h2>
           <router-link to="/events" class="text-primary dark:text-dark-primary hover:underline flex items-center space-x-1 font-medium">
             <span>View all events</span>
@@ -218,30 +149,49 @@
           <SkeletonLoader v-for="i in 6" :key="i" type="card" :animated="true" />
         </div>
         
-        <div v-else-if="events.length === 0" class="text-center py-12 bg-white dark:bg-background-dark/50 rounded-2xl shadow-md">
-          <p class="text-text-light/70 dark:text-text-dark/70 mb-4">No events found</p>
-          <button @click="resetFilters" class="text-primary dark:text-dark-primary hover:underline">Reset filters</button>
+        <div v-else-if="upcomingEvents.length === 0" class="text-center py-12 bg-white dark:bg-background-dark/50 rounded-2xl shadow-md">
+          <p class="text-text-light/70 dark:text-text-dark/70 mb-4">No upcoming events found</p>
         </div>
         
         <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <EventCard 
-            v-for="(event, index) in events" 
+            v-for="(event, index) in upcomingEvents" 
             :key="event.id" 
             :event="event" 
             :color-index="index" 
           />
         </div>
+      </div>
+
+      <!-- Category Showcases -->
+      <div v-for="category in categorizedEvents" :key="category.category" class="mt-16">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-12">
+          <h2 class="text-2xl font-bold text-text-light dark:text-text-dark mb-4 md:mb-0">
+            <span class="border-b-4 border-primary dark:border-dark-primary pb-2">{{ category.category }} Events</span>
+          </h2>
+          <router-link :to="{ path: '/events', query: { category: category.category }}" class="text-primary dark:text-dark-primary hover:underline flex items-center space-x-1 font-medium">
+            <span>View all {{ category.category }} events</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </router-link>
+        </div>
         
-        <!-- Load More button -->
-        <div v-if="events.length > 0 && hasMorePages" class="flex justify-center mt-12">
-          <button 
-            @click="loadMore" 
-            class="bg-white dark:bg-background-dark/50 border border-gray-200 dark:border-gray-700 px-6 py-3 rounded-lg text-text-light/80 dark:text-text-dark/80 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-            :disabled="loadingMore"
-          >
-            <span v-if="loadingMore">Loading...</span>
-            <span v-else>Load More</span>
-          </button>
+        <div v-if="loadingCategorized" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <SkeletonLoader v-for="i in 3" :key="i" type="card" :animated="true" />
+        </div>
+        
+        <div v-else-if="category.events.length === 0" class="text-center py-12 bg-white dark:bg-background-dark/50 rounded-2xl shadow-md">
+          <p class="text-text-light/70 dark:text-text-dark/70 mb-4">No events found in this category</p>
+        </div>
+        
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <EventCard 
+            v-for="(event, index) in category.events.slice(0, 3)" 
+            :key="event.id" 
+            :event="event" 
+            :color-index="index" 
+          />
         </div>
       </div>
     </div>
@@ -334,10 +284,25 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import EventCard from '@/components/events/EventCard.vue';
 import HorizontalEventScroller from '@/components/events/HorizontalEventScroller.vue';
-import EventSearch from '@/components/events/EventSearch.vue';
-import CategoryPills from '@/components/events/CategoryPills.vue';
 import SkeletonLoader from '@/components/common/SkeletonLoader.vue';
-import EventService, { type EventData } from '@/services/api/EventService';
+import EventService from '@/services/api/EventService';
+
+// Get the EventService instance
+const eventService = EventService.getInstance();
+
+// Define EventData interface to match the Event interface from EventService
+interface EventData {
+  id: number;
+  title: string;
+  description: string;
+  start_time: string;
+  image_url?: string;
+  category?: string;
+  price?: number;
+  location?: string;
+  featured?: boolean;
+  min_price?: number;
+}
 
 // State for events
 const events = ref<EventData[]>([]);
@@ -366,6 +331,22 @@ const popularCategories = ['Music', 'Conference', 'Workshop', 'Sports'];
 // Get the current date for "upcoming" filter
 const today = new Date().toISOString();
 
+// Create an extended version of the EventFilters interface that includes our additional filter properties
+interface ExtendedEventFilters {
+  category?: string | null;
+  dateRange?: [Date, Date] | null;
+  location?: string;
+  selectedCategories?: string[];
+  priceRange?: [number, number];
+  page?: number;
+  per_page?: number;
+  sort_by?: string;
+  sort_order?: 'asc' | 'desc';
+  featured?: boolean;
+  start_time_after?: string;
+  search?: string;
+}
+
 // Apply current filters to events
 const applyFilters = () => {
   if (!events.value.length) return;
@@ -383,8 +364,8 @@ const applyFilters = () => {
     filteredEvents = filteredEvents.filter(event => 
       event.title.toLowerCase().includes(query) || 
       event.description.toLowerCase().includes(query) ||
-      event.location.toLowerCase().includes(query) ||
-      event.category.toLowerCase().includes(query)
+      (event.location?.toLowerCase().includes(query) || false) ||
+      (event.category?.toLowerCase().includes(query) || false)
     );
   }
   
@@ -454,7 +435,7 @@ watch([searchQuery, selectedCategory], () => {
 // Fetch available categories
 const fetchCategories = async () => {
   try {
-    const response = await EventService.getCategories();
+    const response = await eventService.getCategories();
     if (!response.data.categories || response.data.categories.length === 0) {
       categories.value = popularCategories;
     } else {
@@ -470,7 +451,7 @@ const fetchCategories = async () => {
 const fetchFeaturedEvents = async () => {
   loadingFeatured.value = true;
   try {
-    const response = await EventService.getFeaturedEvents();
+    const response = await eventService.getEvents({ featured: true } as ExtendedEventFilters);
     featuredEvents.value = response.data.data || [];
   } catch (error) {
     console.error('Error fetching featured events:', error);
@@ -484,7 +465,7 @@ const fetchFeaturedEvents = async () => {
 const fetchAllEvents = async () => {
   isLoading.value = true;
   try {
-    const response = await EventService.getEvents({ per_page: 20 });
+    const response = await eventService.getEvents({ per_page: 20 });
     events.value = response.data.data || [];
     totalPages.value = Math.ceil(response.data.meta.total / response.data.meta.per_page);
   } catch (error) {
@@ -509,7 +490,7 @@ const fetchEventsByCategories = async () => {
       categorizedEvents.value = [];
     } else {
       const categoryPromises = categoriesToFetch.map(async (category) => {
-        const response = await EventService.getEventsByCategory(category);
+        const response = await eventService.getEvents({ category });
         return {
           category,
           events: response.data.data || []
@@ -543,11 +524,13 @@ const loadMore = async () => {
     
     let response;
     if (selectedCategory.value === 'featured') {
-      response = await EventService.getFeaturedEvents(9);
+      response = await eventService.getEvents({ featured: true } as ExtendedEventFilters);
     } else if (selectedCategory.value === 'upcoming') {
-      response = await EventService.getUpcomingEvents(9);
+      response = await eventService.getEvents({ 
+        start_time_after: new Date().toISOString() 
+      } as ExtendedEventFilters);
     } else {
-      response = await EventService.getEvents(filters);
+      response = await eventService.getEvents(filters);
     }
     
     const additionalEvents = response.data.data || [];
@@ -643,6 +626,14 @@ const pauseAutoPlay = () => {
 const resumeAutoPlay = () => {
   startAutoPlay();
 };
+
+// Computed properties
+const upcomingEvents = computed(() => {
+  return events.value
+    .filter((event: EventData) => new Date(event.start_time) > new Date())
+    .sort((a: EventData, b: EventData) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+    .slice(0, 6); // Limit to 6 events for display
+});
 </script>
 
 <style scoped>

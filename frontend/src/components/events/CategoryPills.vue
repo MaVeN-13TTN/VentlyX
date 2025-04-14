@@ -8,7 +8,7 @@
       >
         All
       </button>
-      <!-- Category filter buttons -->
+      <!-- Regular category pills -->
       <button
         v-for="category in categories"
         :key="category"
@@ -31,7 +31,6 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits(['category-change', 'scroll-to-results']);
-
 const activeCategory = ref<string | null>(props.initialCategory || null);
 
 const selectCategory = (category: string) => {
