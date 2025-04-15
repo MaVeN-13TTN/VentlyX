@@ -26,7 +26,8 @@ class AuthenticationTest extends ApiTestCase
             ->assertJsonStructure([
                 'message',
                 'user' => ['id', 'name', 'email', 'created_at'],
-                'access_token',
+                'token',
+                'refresh_token',
                 'token_type'
             ]);
     }
@@ -50,7 +51,8 @@ class AuthenticationTest extends ApiTestCase
             ->assertJsonStructure([
                 'message',
                 'user' => ['id', 'name', 'email'],
-                'access_token',
+                'token',
+                'refresh_token',
                 'token_type'
             ]);
     }

@@ -156,7 +156,7 @@ trait TestHelpers
             'password' => 'password',
         ]);
 
-        return $response->json('access_token');
+        return $response->json('token');
     }
 
     /**

@@ -37,7 +37,8 @@ class RegisterTest extends ApiTestCase
                     'created_at',
                     'updated_at'
                 ],
-                'access_token',
+                'token',
+                'refresh_token',
                 'token_type'
             ]);
 

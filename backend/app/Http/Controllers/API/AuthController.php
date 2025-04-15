@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Str;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
 {
@@ -41,12 +42,17 @@ class AuthController extends Controller
             $user->roles()->attach($userRole);
         }
 
+        // Create access token
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        // Create refresh token
+        $refreshToken = $user->createToken('refresh_token', ['refresh'])->plainTextToken;
 
         return response()->json([
             'message' => 'User registered successfully',
             'user' => $user,
-            'access_token' => $token,
+            'token' => $token,
+            'refresh_token' => $refreshToken,
             'token_type' => 'Bearer',
         ], 201);
     }
@@ -72,13 +78,17 @@ class AuthController extends Controller
         // Delete previous tokens
         $user->tokens()->delete();
 
-        // Create new token
+        // Create new access token
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        // Create refresh token
+        $refreshToken = $user->createToken('refresh_token', ['refresh'])->plainTextToken;
 
         return response()->json([
             'message' => 'Login successful',
             'user' => $user->load('roles'),
-            'access_token' => $token,
+            'token' => $token,
+            'refresh_token' => $refreshToken,
             'token_type' => 'Bearer',
         ]);
     }
@@ -91,10 +101,73 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        $request->user()->tokens()->delete();
+        // Check if a refresh token was provided
+        $refreshToken = $request->refresh_token;
+
+        if ($refreshToken) {
+            // Extract the token ID from the refresh token
+            $tokenId = explode('|', $refreshToken)[0] ?? null;
+
+            if ($tokenId) {
+                // Find and delete the specific refresh token
+                PersonalAccessToken::where('id', $tokenId)->where('tokenable_id', $request->user()->id)->delete();
+            }
+        } else {
+            // If no specific token provided, delete all tokens
+            $request->user()->tokens()->delete();
+        }
 
         return response()->json([
             'message' => 'Successfully logged out'
+        ]);
+    }
+
+    /**
+     * Refresh the access token using a refresh token.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function refresh(Request $request)
+    {
+        $request->validate([
+            'refresh_token' => 'required|string'
+        ]);
+
+        // Extract the token ID and hash from the refresh token
+        $refreshToken = $request->refresh_token;
+        $tokenId = explode('|', $refreshToken)[0] ?? null;
+
+        if (!$tokenId) {
+            return response()->json([
+                'message' => 'Invalid refresh token format'
+            ], 401);
+        }
+
+        // Find the token in the database
+        $token = PersonalAccessToken::find($tokenId);
+
+        if (!$token || !$token->can('refresh')) {
+            return response()->json([
+                'message' => 'Invalid refresh token'
+            ], 401);
+        }
+
+        // Get the user associated with the token
+        $user = $token->tokenable;
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'User not found'
+            ], 401);
+        }
+
+        // Create a new access token
+        $newAccessToken = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'token' => $newAccessToken,
+            'token_type' => 'Bearer',
         ]);
     }
 

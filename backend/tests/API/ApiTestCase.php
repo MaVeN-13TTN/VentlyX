@@ -50,7 +50,7 @@ class ApiTestCase extends TestCase
             'password' => 'password',
         ]);
 
-        return $response->json('access_token');
+        return $response->json('token');
     }
 
     /**

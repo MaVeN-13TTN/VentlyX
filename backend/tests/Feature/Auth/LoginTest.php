@@ -36,7 +36,8 @@ class LoginTest extends ApiTestCase
                     'created_at',
                     'updated_at'
                 ],
-                'access_token',
+                'token',
+                'refresh_token',
                 'token_type'
             ]);
 
@@ -175,13 +176,13 @@ class LoginTest extends ApiTestCase
         $response->assertStatus(200);
 
         // Extract new token
-        $token2 = $response->json('access_token');
+        $token2 = $response->json('token');
 
         // Make sure we got a new token
         $this->assertNotEquals($token1, $token2);
 
-        // Check that we have exactly one token now
-        $this->assertEquals(1, $user->tokens()->count());
+        // Check that we have exactly two tokens now (access token and refresh token)
+        $this->assertEquals(2, $user->tokens()->count());
     }
 
     /**
