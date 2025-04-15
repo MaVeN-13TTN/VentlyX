@@ -9,7 +9,7 @@
         <div class="absolute -inset-[10%] top-1/4 right-2/3 w-96 h-96 bg-secondary rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
         <div class="absolute -inset-[10%] bottom-1/3 left-1/3 w-96 h-96 bg-accent-blue rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000"></div>
       </div>
-      
+
       <div class="container mx-auto relative center-content w-full mt-10">
         <div class="text-center max-w-3xl mx-auto p-6 bg-white/5 dark:bg-background-dark/5 backdrop-blur-sm rounded-2xl border border-white/10 dark:border-gray-800/10 shadow-xl">
           <h1 class="text-5xl lg:text-6xl font-bold mb-6 text-text-light dark:text-text-dark leading-tight">
@@ -19,8 +19,8 @@
             Discover events that match your interests, book tickets, and create unforgettable memories with VentlyX.
           </p>
           <div class="flex flex-wrap gap-4 justify-center">
-            <router-link 
-              to="/events" 
+            <router-link
+              to="/events"
               class="group bg-gradient-to-r from-primary to-secondary text-white px-8 py-4 rounded-full font-medium hover:shadow-lg transition-all duration-300 flex items-center space-x-2"
             >
               <span>Browse Events</span>
@@ -28,15 +28,15 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
             </router-link>
-            <router-link 
-              to="/register" 
+            <router-link
+              to="/register"
               class="bg-transparent border-2 border-primary text-primary dark:text-dark-primary dark:border-dark-primary px-8 py-4 rounded-full font-medium hover:bg-primary/5 dark:hover:bg-dark-primary/5 transition-all duration-300"
             >
               Create Account
             </router-link>
           </div>
         </div>
-        
+
         <!-- Abstract decorative element -->
         <div class="hidden lg:block absolute right-10 top-1/2 -translate-y-1/2">
           <div class="relative w-80 h-80">
@@ -66,47 +66,47 @@
             </svg>
           </router-link>
         </div>
-        
+
         <div v-if="loadingFeatured" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <SkeletonLoader v-for="i in 6" :key="i" type="card" :animated="true" />
         </div>
-        
+
         <div v-else-if="featuredEvents.length === 0" class="text-center py-12 bg-white dark:bg-background-dark/50 rounded-2xl shadow-md">
           <p class="text-text-light/70 dark:text-text-dark/70 mb-4">No featured events found</p>
         </div>
         <div v-else class="relative overflow-hidden rounded-2xl">
           <!-- Carousel Track -->
-          <div 
+          <div
             class="flex transition-transform duration-500 ease-in-out"
             :style="{ transform: `translateX(-${currentIndex * 100}%)` }"
             @mouseenter="pauseAutoPlay"
             @mouseleave="resumeAutoPlay"
           >
-            <div 
-              v-for="(event, index) in featuredEvents" 
+            <div
+              v-for="(event, index) in featuredEvents"
               :key="event.id"
               class="w-full flex-shrink-0 px-4"
             >
-              <EventCard 
-                :event="event" 
+              <EventCard
+                :event="event"
                 :color-index="index"
                 class="h-full"
               />
             </div>
           </div>
           <!-- Navigation Arrows -->
-          <button 
-            @click="prevSlide" 
-            class="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 dark:bg-gray-800/80 p-2 rounded-full shadow-lg hover:bg-white dark:hover:bg-gray-800 transition-colors z-10"
+          <button
+            @click="prevSlide"
+            class="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 dark:bg-gray-800/80 p-2 rounded-full shadow-lg hover:bg-white dark:hover:bg-gray-800 z-10 transform -translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300"
             aria-label="Previous slide"
           >
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary dark:text-dark-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <button 
-            @click="nextSlide" 
-            class="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 dark:bg-gray-800/80 p-2 rounded-full shadow-lg hover:bg-white dark:hover:bg-gray-800 transition-colors z-10"
+          <button
+            @click="nextSlide"
+            class="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 dark:bg-gray-800/80 p-2 rounded-full shadow-lg hover:bg-white dark:hover:bg-gray-800 z-10 transform translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300"
             aria-label="Next slide"
           >
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary dark:text-dark-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -115,18 +115,41 @@
           </button>
           <!-- Dots Navigation -->
           <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2 z-10">
-            <button 
-              v-for="(_, index) in featuredEvents" 
+            <button
+              v-for="(_, index) in featuredEvents"
               :key="index"
               @click="goToSlide(index)"
-              class="w-2 h-2 rounded-full transition-colors duration-200"
+              class="w-3 h-3 rounded-full transition-all duration-200 border border-white/50 dark:border-gray-700/50"
               :class="[
-                currentIndex === index 
-                  ? 'bg-primary dark:bg-dark-primary' 
-                  : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'
+                currentIndex === index
+                  ? 'bg-primary dark:bg-dark-primary scale-110'
+                  : 'bg-gray-300/70 dark:bg-gray-600/70 hover:bg-gray-400 dark:hover:bg-gray-500'
               ]"
               :aria-label="`Go to slide ${index + 1}`"
             ></button>
+          </div>
+          <!-- Auto-play indicator -->
+          <div class="absolute top-4 right-4 z-10">
+            <button
+              @click="toggleAutoPlay"
+              class="p-2 rounded-full bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-800 transition-colors"
+              :aria-label="autoPlayInterval ? 'Pause slideshow' : 'Play slideshow'"
+            >
+              <svg v-if="autoPlayInterval" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
+          </div>
+          <!-- Progress bar -->
+          <div class="absolute bottom-0 left-0 right-0 h-1 bg-gray-200/50 dark:bg-gray-700/50 z-10">
+            <div
+              class="h-full bg-primary dark:bg-dark-primary transition-all duration-300 ease-linear"
+              :style="{ width: `${slideProgress}%` }"
+            ></div>
           </div>
         </div>
       </div>
@@ -144,21 +167,21 @@
             </svg>
           </router-link>
         </div>
-        
+
         <div v-if="isLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <SkeletonLoader v-for="i in 6" :key="i" type="card" :animated="true" />
         </div>
-        
+
         <div v-else-if="upcomingEvents.length === 0" class="text-center py-12 bg-white dark:bg-background-dark/50 rounded-2xl shadow-md">
           <p class="text-text-light/70 dark:text-text-dark/70 mb-4">No upcoming events found</p>
         </div>
-        
+
         <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <EventCard 
-            v-for="(event, index) in upcomingEvents" 
-            :key="event.id" 
-            :event="event" 
-            :color-index="index" 
+          <EventCard
+            v-for="(event, index) in upcomingEvents"
+            :key="event.id"
+            :event="event"
+            :color-index="index"
           />
         </div>
       </div>
@@ -176,26 +199,26 @@
             </svg>
           </router-link>
         </div>
-        
+
         <div v-if="loadingCategorized" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <SkeletonLoader v-for="i in 3" :key="i" type="card" :animated="true" />
         </div>
-        
+
         <div v-else-if="category.events.length === 0" class="text-center py-12 bg-white dark:bg-background-dark/50 rounded-2xl shadow-md">
           <p class="text-text-light/70 dark:text-text-dark/70 mb-4">No events found in this category</p>
         </div>
-        
+
         <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <EventCard 
-            v-for="(event, index) in category.events.slice(0, 3)" 
-            :key="event.id" 
-            :event="event" 
-            :color-index="index" 
+          <EventCard
+            v-for="(event, index) in category.events.slice(0, 3)"
+            :key="event.id"
+            :event="event"
+            :color-index="index"
           />
         </div>
       </div>
     </div>
-    
+
     <!-- How It Works Section -->
     <div class="bg-white dark:bg-background-dark/50 py-24 rounded-t-3xl">
       <div class="container mx-auto px-4 py-8">
@@ -205,13 +228,13 @@
             <span class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-24 h-1 bg-gradient-to-r from-primary to-accent-pink"></span>
           </span>
         </h2>
-        
+
         <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
           <!-- Step 1 -->
           <div class="relative text-center group">
             <!-- Connector line between steps (hidden on mobile) -->
             <div class="hidden md:block absolute top-10 left-full w-full h-0.5 bg-gradient-to-r from-primary/50 to-transparent -z-10 transform translate-x-4"></div>
-            
+
             <div class="relative inline-flex mb-8">
               <!-- Icon background with animated border -->
               <div class="absolute inset-0 rounded-full bg-gradient-to-r from-primary to-secondary animate-spin-slow opacity-70"></div>
@@ -219,16 +242,16 @@
                 <span class="bg-gradient-to-r from-primary to-accent-pink bg-clip-text text-transparent">1</span>
               </div>
             </div>
-            
+
             <h3 class="text-xl font-semibold mb-3 text-text-light dark:text-text-dark">Find Events</h3>
             <p class="text-text-light/70 dark:text-text-dark/70 max-w-xs mx-auto">Browse our curated list of events or search for specific categories that match your interests.</p>
           </div>
-          
+
           <!-- Step 2 -->
           <div class="relative text-center group">
             <!-- Connector line between steps (hidden on mobile) -->
             <div class="hidden md:block absolute top-10 left-full w-full h-0.5 bg-gradient-to-r from-primary/50 to-transparent -z-10 transform translate-x-4"></div>
-            
+
             <div class="relative inline-flex mb-8">
               <!-- Icon background with animated border -->
               <div class="absolute inset-0 rounded-full bg-gradient-to-r from-secondary to-accent-blue animate-spin-slow opacity-70"></div>
@@ -236,11 +259,11 @@
                 <span class="bg-gradient-to-r from-secondary to-accent-blue bg-clip-text text-transparent">2</span>
               </div>
             </div>
-            
+
             <h3 class="text-xl font-semibold mb-3 text-text-light dark:text-text-dark">Book Tickets</h3>
             <p class="text-text-light/70 dark:text-text-dark/70 max-w-xs mx-auto">Select your preferred tickets and complete the secure payment process in just a few clicks.</p>
           </div>
-          
+
           <!-- Step 3 -->
           <div class="relative text-center group">
             <div class="relative inline-flex mb-8">
@@ -250,14 +273,14 @@
                 <span class="bg-gradient-to-r from-accent-pink to-secondary bg-clip-text text-transparent">3</span>
               </div>
             </div>
-            
+
             <h3 class="text-xl font-semibold mb-3 text-text-light dark:text-text-dark">Attend & Enjoy</h3>
             <p class="text-text-light/70 dark:text-text-dark/70 max-w-xs mx-auto">Receive your tickets via email, scan the QR code at the venue, and enjoy an amazing experience.</p>
           </div>
         </div>
       </div>
     </div>
-    
+
     <!-- CTA Section -->
     <div class="py-20 relative overflow-hidden rounded-b-3xl">
       <div class="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent-pink/20 dark:from-primary/10 dark:to-accent-pink/10 rounded-b-3xl"></div>
@@ -265,8 +288,8 @@
         <div class="max-w-3xl mx-auto text-center">
           <h2 class="text-3xl font-bold mb-6 text-text-light dark:text-text-dark">Ready to Discover Amazing Events?</h2>
           <p class="text-xl mb-10 text-text-light/80 dark:text-text-dark/80">Join thousands of people who are already using VentlyX to find and attend the best events near them.</p>
-          <router-link 
-            to="/register" 
+          <router-link
+            to="/register"
             class="inline-flex items-center bg-gradient-to-r from-primary to-accent-pink text-white px-8 py-4 rounded-full font-medium hover:shadow-lg shadow-primary/20 transition-all duration-300"
           >
             <span>Get Started Today</span>
@@ -350,44 +373,44 @@ interface ExtendedEventFilters {
 // Apply current filters to events
 const applyFilters = () => {
   if (!events.value.length) return;
-  
+
   // If no search or category filter, show all events
   if (!searchQuery.value && !selectedCategory.value) {
     return;
   }
-  
+
   let filteredEvents = [...events.value];
-  
+
   // Apply search filter if present
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
-    filteredEvents = filteredEvents.filter(event => 
-      event.title.toLowerCase().includes(query) || 
+    filteredEvents = filteredEvents.filter(event =>
+      event.title.toLowerCase().includes(query) ||
       event.description.toLowerCase().includes(query) ||
       (event.location?.toLowerCase().includes(query) || false) ||
       (event.category?.toLowerCase().includes(query) || false)
     );
   }
-  
+
   // Apply category filter if present
   if (selectedCategory.value) {
     // Handle special filters
     if (selectedCategory.value === 'featured') {
       filteredEvents = filteredEvents.filter(event => event.featured);
     } else if (selectedCategory.value === 'upcoming') {
-      filteredEvents = filteredEvents.filter(event => 
+      filteredEvents = filteredEvents.filter(event =>
         new Date(event.start_time) > new Date(today)
-      ).sort((a, b) => 
+      ).sort((a, b) =>
         new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
       );
     } else {
       // Regular category filter
-      filteredEvents = filteredEvents.filter(event => 
+      filteredEvents = filteredEvents.filter(event =>
         event.category === selectedCategory.value
       );
     }
   }
-  
+
   events.value = filteredEvents;
 };
 
@@ -399,10 +422,10 @@ onMounted(async () => {
       fetchFeaturedEvents(),
       fetchAllEvents()
     ]);
-    
+
     // Start carousel autoplay
     startAutoPlay();
-    
+
     // Pause autoplay when tab is not visible
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
@@ -411,7 +434,7 @@ onMounted(async () => {
         startAutoPlay();
       }
     });
-    
+
     // Fetch events by category after we know what categories exist
     if (categories.value.length > 0) {
       await fetchEventsByCategories();
@@ -423,6 +446,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   stopAutoPlay();
+  stopSlideProgress();
   document.removeEventListener('visibilitychange', () => {});
 });
 
@@ -482,10 +506,10 @@ const fetchEventsByCategories = async () => {
   loadingCategorized.value = true;
   try {
     // Get events for a few predefined categories
-    const categoriesToFetch = popularCategories.filter(cat => 
+    const categoriesToFetch = popularCategories.filter(cat =>
       categories.value.includes(cat)
     ).slice(0, 3); // Limit to 3 categories for performance
-    
+
     if (categoriesToFetch.length === 0) {
       categorizedEvents.value = [];
     } else {
@@ -496,7 +520,7 @@ const fetchEventsByCategories = async () => {
           events: response.data.data || []
         };
       });
-      
+
       categorizedEvents.value = await Promise.all(categoryPromises);
     }
   } catch (error) {
@@ -510,9 +534,9 @@ const fetchEventsByCategories = async () => {
 // Load more events
 const loadMore = async () => {
   if (loadingMore.value || !hasMorePages.value) return;
-  
+
   loadingMore.value = true;
-  
+
   try {
     currentPage.value += 1;
     const filters = {
@@ -521,18 +545,18 @@ const loadMore = async () => {
       search: searchQuery.value || undefined,
       category: selectedCategory.value === 'featured' || selectedCategory.value === 'upcoming' ? undefined : selectedCategory.value
     };
-    
+
     let response;
     if (selectedCategory.value === 'featured') {
       response = await eventService.getEvents({ featured: true } as ExtendedEventFilters);
     } else if (selectedCategory.value === 'upcoming') {
-      response = await eventService.getEvents({ 
-        start_time_after: new Date().toISOString() 
+      response = await eventService.getEvents({
+        start_time_after: new Date().toISOString()
       } as ExtendedEventFilters);
     } else {
       response = await eventService.getEvents(filters);
     }
-    
+
     const additionalEvents = response.data.data || [];
     events.value = [...events.value, ...additionalEvents];
   } catch (error) {
@@ -548,20 +572,20 @@ const searchResultsSection = ref<HTMLElement | null>(null);
 
 const handleSearch = async (query: string) => {
   searchQuery.value = query;
-  
+
   // Wait for the DOM to update after the search results are filtered
   await nextTick();
-  
+
   // Scroll to the search results section with smooth behavior
   if (searchResultsSection.value) {
     const yOffset = -100; // Offset to account for fixed header
     const y = searchResultsSection.value.getBoundingClientRect().top + window.pageYOffset + yOffset;
-    
+
     window.scrollTo({
       top: y,
       behavior: 'smooth'
     });
-    
+
     // Add a brief highlight effect to the section
     searchResultsSection.value.classList.add('search-highlight');
     setTimeout(() => {
@@ -586,22 +610,28 @@ const resetFilters = () => {
 // Carousel state
 const currentIndex = ref(0);
 const autoPlayInterval = ref<number | null>(null);
+const slideProgress = ref(0);
+const slideTimer = ref<number | null>(null);
+const slideDuration = 5000; // 5 seconds per slide
 
 // Carousel methods
 const nextSlide = () => {
   if (featuredEvents.value.length <= 1) return;
   currentIndex.value = (currentIndex.value + 1) % featuredEvents.value.length;
+  resetSlideProgress();
 };
 
 const prevSlide = () => {
   if (featuredEvents.value.length <= 1) return;
-  currentIndex.value = currentIndex.value === 0 
-    ? featuredEvents.value.length - 1 
+  currentIndex.value = currentIndex.value === 0
+    ? featuredEvents.value.length - 1
     : currentIndex.value - 1;
+  resetSlideProgress();
 };
 
 const goToSlide = (index: number) => {
   currentIndex.value = index;
+  resetSlideProgress();
 };
 
 const startAutoPlay = () => {
@@ -609,7 +639,10 @@ const startAutoPlay = () => {
   stopAutoPlay(); // Clear any existing interval
   autoPlayInterval.value = window.setInterval(() => {
     nextSlide();
-  }, 5000); // Change slide every 5 seconds
+  }, slideDuration); // Change slide every 5 seconds
+
+  // Start progress bar
+  startSlideProgress();
 };
 
 const stopAutoPlay = () => {
@@ -617,6 +650,9 @@ const stopAutoPlay = () => {
     clearInterval(autoPlayInterval.value);
     autoPlayInterval.value = null;
   }
+
+  // Stop progress bar
+  stopSlideProgress();
 };
 
 const pauseAutoPlay = () => {
@@ -625,6 +661,46 @@ const pauseAutoPlay = () => {
 
 const resumeAutoPlay = () => {
   startAutoPlay();
+};
+
+const toggleAutoPlay = () => {
+  if (autoPlayInterval.value) {
+    pauseAutoPlay();
+  } else {
+    resumeAutoPlay();
+  }
+};
+
+const startSlideProgress = () => {
+  // Reset progress
+  slideProgress.value = 0;
+
+  // Clear any existing timer
+  if (slideTimer.value) {
+    clearInterval(slideTimer.value);
+  }
+
+  // Start progress timer
+  const startTime = Date.now();
+  slideTimer.value = window.setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    slideProgress.value = Math.min((elapsed / slideDuration) * 100, 100);
+  }, 16); // Update roughly every frame (60fps)
+};
+
+const stopSlideProgress = () => {
+  if (slideTimer.value) {
+    clearInterval(slideTimer.value);
+    slideTimer.value = null;
+  }
+  slideProgress.value = 0;
+};
+
+const resetSlideProgress = () => {
+  if (autoPlayInterval.value) {
+    stopSlideProgress();
+    startSlideProgress();
+  }
 };
 
 // Computed properties

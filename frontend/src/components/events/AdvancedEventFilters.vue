@@ -177,19 +177,95 @@
           </div>
         </div>
 
-        <!-- Price Range -->
+        <!-- Distance Filter -->
+        <div>
+          <label class="block text-sm font-medium text-text-light dark:text-text-dark mb-2">
+            Distance (km)
+          </label>
+          <input
+            type="range"
+            v-model="distance"
+            min="0"
+            max="100"
+            step="1"
+            class="w-full"
+          />
+          <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            {{ distance }} km
+          </div>
+        </div>
+
+        <!-- Popularity/Rating Filter -->
+        <div>
+          <label class="block text-sm font-medium text-text-light dark:text-text-dark mb-2">
+            Popularity/Rating
+          </label>
+          <select
+            v-model="popularity"
+            class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-text-light dark:text-text-dark focus:ring-2 focus:ring-primary dark:focus:ring-dark-primary focus:border-transparent text-sm"
+          >
+            <option value="">Select</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+
+        <!-- Quick Date Presets -->
+        <div>
+          <label class="block text-sm font-medium text-text-light dark:text-text-dark mb-2">
+            Quick Date Presets
+          </label>
+          <div class="flex space-x-2">
+            <button
+              v-for="preset in datePresets"
+              :key="preset.label"
+              @click="applyDatePreset(preset.range as [Date, Date])"
+              class="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-text-light dark:text-text-dark hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm"
+            >
+              {{ preset.label }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Search-as-You-Type for Categories -->
+        <div>
+          <label class="block text-sm font-medium text-text-light dark:text-text-dark mb-2">
+            Search Categories
+          </label>
+          <input
+            v-model="categorySearch"
+            type="text"
+            placeholder="Search categories"
+            class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-text-light dark:text-text-dark focus:ring-2 focus:ring-primary dark:focus:ring-dark-primary focus:border-transparent text-sm"
+          />
+          <div class="flex flex-wrap gap-2 mt-2">
+            <button
+              v-for="category in filteredCategories"
+              :key="category"
+              @click="toggleCategory(category)"
+              class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-colors"
+              :class="[
+                selectedCategories.includes(category)
+                  ? 'bg-primary dark:bg-dark-primary text-white'
+                  : 'bg-gray-100 dark:bg-gray-700 text-text-light dark:text-text-dark hover:bg-gray-200 dark:hover:bg-gray-600'
+              ]"
+            >
+              {{ category }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Improved Price Range Slider -->
         <div>
           <label class="inline-flex items-center text-sm font-medium text-text-light dark:text-text-dark mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
             Price Range
           </label>
           <div class="flex items-center justify-between mt-2">
             <div class="flex items-center w-[45%]">
               <span class="text-sm text-gray-500 dark:text-gray-400 mr-2">$</span>
-              <input 
-                type="number" 
+              <input
+                type="number"
                 v-model.number="priceRange[0]"
                 min="0"
                 max="1000"
@@ -201,8 +277,8 @@
             <div class="text-gray-500 dark:text-gray-400">to</div>
             <div class="flex items-center w-[45%]">
               <span class="text-sm text-gray-500 dark:text-gray-400 mr-2">$</span>
-              <input 
-                type="number" 
+              <input
+                type="number"
                 v-model.number="priceRange[1]"
                 min="0"
                 max="1000"
@@ -211,6 +287,9 @@
                 @change="validatePriceInput(1)"
               />
             </div>
+          </div>
+          <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Selected Range: ${{ priceRange[0] }} - ${{ priceRange[1] }}
           </div>
         </div>
 
@@ -361,4 +440,48 @@ watch(() => props.initialFilters, (newVal) => {
     priceRange.value = newVal.priceRange || [0, 1000];
   }
 }, { deep: true });
+
+const distance = ref(50); // Default distance in km
+const popularity = ref('');
+const categorySearch = ref('');
+
+interface DatePreset {
+  label: string;
+  range: [Date, Date];
+}
+
+const datePresets: DatePreset[] = [
+  { label: 'Today', range: [new Date(), new Date()] },
+  { label: 'This Weekend', range: [getNextSaturday(), getNextSunday()] },
+  { label: 'Next Week', range: [getNextMonday(), getNextSunday()] },
+];
+
+const filteredCategories = computed(() => {
+  return props.categories.filter(category =>
+    category.toLowerCase().includes(categorySearch.value.toLowerCase())
+  );
+});
+
+const applyDatePreset = (range: [Date, Date]) => {
+  dateRange.value = range;
+};
+
+function getNextSaturday() {
+  const today = new Date();
+  const day = today.getDay();
+  const diff = 6 - day;
+  return new Date(today.getFullYear(), today.getMonth(), today.getDate() + diff);
+}
+
+function getNextSunday() {
+  const saturday = getNextSaturday();
+  return new Date(saturday.getFullYear(), saturday.getMonth(), saturday.getDate() + 1);
+}
+
+function getNextMonday() {
+  const today = new Date();
+  const day = today.getDay();
+  const diff = (8 - day) % 7;
+  return new Date(today.getFullYear(), today.getMonth(), today.getDate() + diff);
+}
 </script>

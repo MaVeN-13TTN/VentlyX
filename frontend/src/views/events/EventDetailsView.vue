@@ -15,8 +15,8 @@
     <div v-else-if="error" class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
       <div class="bg-red-50 dark:bg-red-900/10 p-4 rounded-lg">
         <p class="text-red-600 dark:text-red-400">{{ error }}</p>
-        <button 
-          @click="fetchEvent" 
+        <button
+          @click="fetchEvent"
           class="mt-4 px-4 py-2 bg-primary dark:bg-dark-primary text-white rounded-lg hover:bg-primary-dark dark:hover:bg-dark-primary-dark transition-colors"
         >
           Try Again
@@ -70,9 +70,9 @@
           </span>
           <div class="ml-auto flex space-x-2">
             <div class="inline-flex rounded-md" role="group">
-              <ShareEvent 
-                :title="event.title" 
-                :url="shareUrl" 
+              <ShareEvent
+                :title="event.title"
+                :url="shareUrl"
                 class="rounded-l-md"
               />
               <CalendarOptions
@@ -92,7 +92,7 @@
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div class="lg:col-span-2">
           <!-- Image Gallery with Lightbox -->
-          <EventGallery 
+          <EventGallery
             :images="event.images"
             :main-image="event.image_url"
             :alt-text="event.title"
@@ -111,9 +111,47 @@
             <h2 class="text-xl md:text-2xl font-semibold text-text-light dark:text-text-dark mb-4">Location</h2>
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
               <p class="mb-2 text-text-light dark:text-text-dark">{{ event.location }}</p>
-              
+
               <!-- Map Container -->
-              <div ref="mapContainer" class="h-64 rounded-lg overflow-hidden"></div>
+              <div ref="mapContainer" class="h-64 rounded-lg overflow-hidden relative">
+                <!-- Loading indicator -->
+                <div v-if="mapLoading" class="absolute inset-0 flex items-center justify-center bg-gray-100/50 dark:bg-gray-800/50 z-10">
+                  <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary dark:border-dark-primary"></div>
+                </div>
+                <!-- Fallback for map errors -->
+                <div v-if="mapError" class="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800 z-10">
+                  <div class="text-center p-4">
+                    <p class="text-gray-600 dark:text-gray-400 mb-2">{{ mapError }}</p>
+                    <a
+                      :href="`https://maps.google.com/?q=${encodeURIComponent(event.location)}`"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-primary dark:text-dark-primary hover:underline inline-flex items-center"
+                    >
+                      <span>View on Google Maps</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Map Actions -->
+              <div class="mt-3 flex justify-end">
+                <a
+                  :href="`https://maps.google.com/?q=${encodeURIComponent(event.location)}`"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-primary dark:text-dark-primary hover:underline text-sm inline-flex items-center"
+                >
+                  <span>Get Directions</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </a>
+              </div>
             </div>
           </div>
 
@@ -132,9 +170,9 @@
                   <h3 class="font-semibold text-text-light dark:text-text-dark">{{ event.organizer?.name || 'Event Organizer' }}</h3>
                   <p class="text-sm text-gray-500 dark:text-gray-400">{{ event.organizer?.events_count || '0' }} Events</p>
                 </div>
-                <router-link 
-                  v-if="event.organizer?.id" 
-                  :to="{ name: 'organizer-profile', params: { id: event.organizer.id }}" 
+                <router-link
+                  v-if="event.organizer?.id"
+                  :to="{ name: 'organizer-profile', params: { id: event.organizer.id }}"
                   class="ml-auto text-primary dark:text-dark-primary hover:underline text-sm font-medium"
                 >
                   View Profile
@@ -185,9 +223,9 @@
             <div class="mb-6">
               <h3 class="font-semibold text-text-light dark:text-text-dark mb-3">Tickets</h3>
               <div v-if="event.ticket_types && event.ticket_types.length > 0">
-                <div 
-                  v-for="ticket in event.ticket_types" 
-                  :key="ticket.id" 
+                <div
+                  v-for="ticket in event.ticket_types"
+                  :key="ticket.id"
                   class="mb-2 p-3 border border-gray-200 dark:border-gray-700 rounded-lg"
                 >
                   <div class="flex justify-between">
@@ -197,22 +235,22 @@
                     </div>
                     <div class="text-right">
                       <p class="font-semibold text-text-light dark:text-text-dark">${{ ticket.price.toFixed(2) }}</p>
-                      <span 
+                      <span
                         :class="[
                           'text-xs px-2 py-0.5 rounded-full',
-                          ticket.available_quantity > 10 
+                          ticket.available_quantity > 10
                             ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400'
-                            : ticket.available_quantity > 0 
+                            : ticket.available_quantity > 0
                               ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400'
                               : 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-400'
                         ]"
                       >
-                        {{ 
-                          ticket.available_quantity > 0 
-                            ? ticket.available_quantity > 10 
+                        {{
+                          ticket.available_quantity > 0
+                            ? ticket.available_quantity > 10
                               ? 'Available'
-                              : `Only ${ticket.available_quantity} left` 
-                            : 'Sold out' 
+                              : `Only ${ticket.available_quantity} left`
+                            : 'Sold out'
                         }}
                       </span>
                     </div>
@@ -225,8 +263,8 @@
             </div>
 
             <!-- CTA Button -->
-            <button 
-              @click="buyTickets" 
+            <button
+              @click="buyTickets"
               class="w-full py-3 px-6 bg-primary dark:bg-dark-primary text-white rounded-lg hover:bg-primary-dark dark:hover:bg-dark-primary-dark transition-colors flex items-center justify-center space-x-2"
               :disabled="!hasAvailableTickets"
               :class="{ 'opacity-50 cursor-not-allowed': !hasAvailableTickets }"
@@ -243,45 +281,79 @@
       <!-- Related Events -->
       <div class="mt-12">
         <h2 class="text-2xl font-semibold text-text-light dark:text-text-dark mb-6">You May Also Like</h2>
-        <div v-if="relatedEvents.length > 0" class="relative">
+        <div v-if="loadingRelated" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div v-for="i in 4" :key="i" class="animate-pulse">
+            <div class="bg-gray-200 dark:bg-gray-700 h-40 rounded-t-lg"></div>
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-b-lg">
+              <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-2"></div>
+              <div class="h-6 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
+              <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-2"></div>
+              <div class="flex justify-between mt-4">
+                <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+                <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-else-if="relatedEvents.length > 0" class="relative group">
           <!-- Navigation Buttons -->
-          <button 
-            @click="scrollCarousel('left')" 
-            class="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white dark:bg-gray-800 p-2 rounded-full shadow-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none"
+          <button
+            @click="scrollCarousel('left')"
+            class="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white dark:bg-gray-800 p-2 rounded-full shadow-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all duration-300"
+            aria-label="Scroll left"
           >
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          
+
           <div ref="carouselContainer" class="overflow-x-scroll scrollbar-hide scroll-smooth">
             <div class="inline-flex space-x-6 py-4 px-1">
-              <div 
-                v-for="relatedEvent in relatedEvents" 
+              <div
+                v-for="relatedEvent in relatedEvents"
                 :key="relatedEvent.id"
                 class="w-72 flex-shrink-0"
               >
                 <router-link :to="{ name: 'event-details', params: { id: relatedEvent.id }}">
                   <div class="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-md">
                     <div class="h-40 relative overflow-hidden">
-                      <img 
-                        v-if="relatedEvent.image_url" 
-                        :src="relatedEvent.image_url" 
-                        :alt="relatedEvent.title" 
+                      <img
+                        v-if="relatedEvent.image_url"
+                        :src="relatedEvent.image_url"
+                        :alt="relatedEvent.title"
                         class="w-full h-full object-cover"
+                        loading="lazy"
                       />
                       <div v-else class="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                         <span class="text-gray-400 dark:text-gray-500">No image</span>
                       </div>
+
+                      <!-- Category Badge -->
+                      <div class="absolute top-2 left-2">
+                        <span
+                          class="px-2 py-1 text-xs font-medium rounded-full bg-white/90 dark:bg-gray-800/90 text-primary dark:text-dark-primary"
+                        >
+                          {{ relatedEvent.category || 'Uncategorized' }}
+                        </span>
+                      </div>
+
+                      <!-- Availability Badge -->
+                      <div v-if="relatedEvent.ticket_types && relatedEvent.ticket_types.length > 0" class="absolute top-2 right-2">
+                        <span
+                          class="px-2 py-1 text-xs font-medium rounded-full"
+                          :class="getAvailabilityClass(relatedEvent)"
+                        >
+                          {{ getAvailabilityText(relatedEvent) }}
+                        </span>
+                      </div>
                     </div>
                     <div class="p-4">
-                      <p class="text-xs text-primary dark:text-dark-primary mb-1">{{ relatedEvent.category }}</p>
                       <h3 class="font-medium text-text-light dark:text-text-dark line-clamp-2">{{ relatedEvent.title }}</h3>
                       <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         {{ formatDateTime(relatedEvent.start_time, 'short') }}
                       </p>
                       <div class="flex justify-between items-center mt-3">
-                        <span class="text-sm text-text-light dark:text-text-dark">{{ relatedEvent.location }}</span>
+                        <span class="text-sm text-text-light dark:text-text-dark truncate max-w-[120px]" :title="relatedEvent.location">{{ relatedEvent.location }}</span>
                         <span class="font-medium text-text-light dark:text-text-dark">${{ relatedEvent.price?.toFixed(2) || 'Free' }}</span>
                       </div>
                     </div>
@@ -290,18 +362,42 @@
               </div>
             </div>
           </div>
-          
-          <button 
-            @click="scrollCarousel('right')" 
-            class="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white dark:bg-gray-800 p-2 rounded-full shadow-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none"
+
+          <button
+            @click="scrollCarousel('right')"
+            class="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white dark:bg-gray-800 p-2 rounded-full shadow-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300"
+            aria-label="Scroll right"
           >
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
           </button>
+
+          <!-- Scroll Indicator -->
+          <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 flex space-x-1 pb-1">
+            <div
+              v-for="(_, index) in Math.ceil(relatedEvents.length / 4)"
+              :key="index"
+              class="w-2 h-2 rounded-full transition-colors duration-200"
+              :class="[
+                carouselPage === index
+                  ? 'bg-primary dark:bg-dark-primary'
+                  : 'bg-gray-300 dark:bg-gray-600'
+              ]"
+            ></div>
+          </div>
         </div>
-        <div v-else class="text-center py-8">
+        <div v-else class="text-center py-8 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
           <p class="text-gray-500 dark:text-gray-400">No related events found</p>
+          <router-link
+            to="/events"
+            class="inline-flex items-center mt-4 text-primary dark:text-dark-primary hover:underline"
+          >
+            <span>Browse all events</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </router-link>
         </div>
       </div>
     </div>
@@ -330,9 +426,13 @@ const event = ref<any>({});
 const loading = ref(true);
 const error = ref('');
 const relatedEvents = ref<any[]>([]);
+const loadingRelated = ref(true);
 const shareUrl = ref('');
 const mapContainer = ref<HTMLElement | null>(null);
 const carouselContainer = ref<HTMLElement | null>(null);
+const mapLoading = ref(false);
+const mapError = ref('');
+const carouselPage = ref(0);
 let map: any = null;
 
 // Computed properties
@@ -357,10 +457,10 @@ const fetchEvent = async () => {
     const response = await eventService.getEvent(eventId);
     event.value = response.data;
     shareUrl.value = window.location.href;
-    
+
     // Fetch related events
     fetchRelatedEvents();
-    
+
     // Initialize map after we have the location data
     nextTick(() => {
       initMap();
@@ -375,12 +475,13 @@ const fetchEvent = async () => {
 
 // Fetch related events based on category or tags
 const fetchRelatedEvents = async () => {
+  loadingRelated.value = true;
   try {
     const filter: any = {};
     if (event.value.category) {
       filter.category = event.value.category;
     }
-    
+
     // Exclude current event
     const response = await eventService.getEvents(filter);
     relatedEvents.value = response.data.data
@@ -388,15 +489,18 @@ const fetchRelatedEvents = async () => {
       .slice(0, 8); // Limit to 8 related events
   } catch (err) {
     console.error('Error fetching related events:', err);
+    relatedEvents.value = [];
+  } finally {
+    loadingRelated.value = false;
   }
 };
 
 // Format date and time
 const formatDateTime = (dateString: string, format: 'full' | 'short' | 'time') => {
   if (!dateString) return '';
-  
+
   const date = new Date(dateString);
-  
+
   if (format === 'full') {
     return new Intl.DateTimeFormat('en-US', {
       weekday: 'long',
@@ -424,51 +528,114 @@ const formatDateTime = (dateString: string, format: 'full' | 'short' | 'time') =
 // Initialize the map with Leaflet
 const initMap = async () => {
   if (!mapContainer.value || !event.value.location) return;
-  
+
   // Check if map is already initialized
   if (map) {
     map.remove();
   }
-  
+
+  mapLoading.value = true;
+  mapError.value = '';
+
   // Convert the location to coordinates using a geocoding service
   try {
     // This is a simple implementation - a real app might use a service like Mapbox or Google
     const locationQuery = encodeURIComponent(event.value.location);
     const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${locationQuery}&format=json&limit=1`);
     const data = await response.json();
-    
+
     if (data && data.length > 0) {
       const { lat, lon } = data[0];
-      
+
       // Create the map
       map = L.map(mapContainer.value).setView([lat, lon], 13);
-      
+
       // Add the tile layer (OpenStreetMap)
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(map);
-      
+
       // Add a marker for the event location
-      L.marker([lat, lon])
+      const marker = L.marker([lat, lon])
         .addTo(map)
-        .bindPopup(event.value.location)
-        .openPopup();
+        .bindPopup(`<strong>${event.value.title}</strong><br>${event.value.location}`);
+
+      // Open popup after a short delay to ensure map is fully loaded
+      setTimeout(() => {
+        marker.openPopup();
+      }, 500);
+
+      // Add a circle to highlight the area
+      L.circle([lat, lon], {
+        color: 'rgba(var(--color-primary), 0.8)',
+        fillColor: 'rgba(var(--color-primary), 0.2)',
+        fillOpacity: 0.5,
+        radius: 500
+      }).addTo(map);
+    } else {
+      mapError.value = 'Location not found on map';
     }
   } catch (err) {
     console.error('Error initializing map:', err);
+    mapError.value = 'Failed to load map';
+  } finally {
+    mapLoading.value = false;
   }
 };
 
 // Related events carousel
 const scrollCarousel = (direction: 'left' | 'right') => {
   if (!carouselContainer.value) return;
-  
+
   const scrollAmount = 300; // pixels to scroll
-  
+  const containerWidth = carouselContainer.value.clientWidth;
+  const scrollWidth = carouselContainer.value.scrollWidth;
+  const currentScroll = carouselContainer.value.scrollLeft;
+
   if (direction === 'left') {
     carouselContainer.value.scrollLeft -= scrollAmount;
+    // Update current page
+    const newPage = Math.floor((currentScroll - scrollAmount) / containerWidth);
+    carouselPage.value = Math.max(0, newPage);
   } else {
     carouselContainer.value.scrollLeft += scrollAmount;
+    // Update current page
+    const newPage = Math.floor((currentScroll + scrollAmount) / containerWidth);
+    const maxPage = Math.ceil(scrollWidth / containerWidth) - 1;
+    carouselPage.value = Math.min(maxPage, newPage);
+  }
+};
+
+// Helper functions for availability badges
+const getAvailabilityClass = (eventItem: any) => {
+  if (!eventItem.ticket_types || eventItem.ticket_types.length === 0) {
+    return 'bg-gray-500/80 text-white';
+  }
+
+  const totalAvailable = eventItem.ticket_types.reduce((sum: number, ticket: any) => sum + (ticket.available_quantity || 0), 0);
+
+  if (totalAvailable === 0) {
+    return 'bg-red-500/80 text-white';
+  } else if (totalAvailable < 10) {
+    return 'bg-amber-500/80 text-white';
+  } else {
+    return 'bg-green-500/80 text-white';
+  }
+};
+
+const getAvailabilityText = (eventItem: any) => {
+  if (!eventItem.ticket_types || eventItem.ticket_types.length === 0) {
+    return 'Unavailable';
+  }
+
+  const totalAvailable = eventItem.ticket_types.reduce((sum: number, ticket: any) => sum + (ticket.available_quantity || 0), 0);
+
+  if (totalAvailable === 0) {
+    return 'Sold Out';
+  } else if (totalAvailable < 10) {
+    return `${totalAvailable} left`;
+  } else {
+    return 'Available';
   }
 };
 
