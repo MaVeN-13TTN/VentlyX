@@ -17,4 +17,12 @@ app.config.globalProperties.$containerStyles = {
 app.use(createPinia());
 app.use(router);
 
+// Global Error Handler
+app.config.errorHandler = (err, instance, info) => {
+  console.error("Unhandled error:", err);
+  console.error("Vue instance:", instance);
+  console.error("Error info:", info);
+  // TODO: Add more robust logging here (e.g., send to a logging service)
+};
+
 app.mount('#app');

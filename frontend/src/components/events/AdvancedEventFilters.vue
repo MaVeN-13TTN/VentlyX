@@ -1,14 +1,14 @@
 <template>
   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md mb-8">
     <!-- Header with toggle button -->
-    <div 
+    <div
       class="p-4 sm:p-6 cursor-pointer flex items-center justify-between"
       @click="toggleFilters"
     >
       <div class="flex items-center space-x-3">
         <h3 class="text-base sm:text-lg font-semibold text-text-light dark:text-text-dark">Advanced Filters</h3>
-        <span 
-          v-if="hasActiveFilters" 
+        <span
+          v-if="hasActiveFilters"
           class="px-2 py-1 text-xs font-medium bg-primary/10 dark:bg-dark-primary/10 text-primary dark:text-dark-primary rounded-full"
         >
           {{ activeFiltersCount }} active
@@ -25,12 +25,12 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
-        <svg 
-          xmlns="http://www.w3.org/2000/svg" 
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
           class="h-5 w-5 text-gray-500 dark:text-gray-400 transition-transform duration-200"
           :class="{ 'transform rotate-180': isExpanded }"
-          fill="none" 
-          viewBox="0 0 24 24" 
+          fill="none"
+          viewBox="0 0 24 24"
           stroke="currentColor"
         >
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -39,7 +39,7 @@
     </div>
 
     <!-- Collapsible content -->
-    <div 
+    <div
       class="overflow-hidden transition-all duration-200 ease-in-out"
       :class="{ 'max-h-0': !isExpanded, 'max-h-[1000px]': isExpanded }"
     >
@@ -256,40 +256,32 @@
           </div>
         </div>
 
-        <!-- Improved Price Range Slider -->
+        <!-- Price Range Slider -->
         <div>
           <label class="inline-flex items-center text-sm font-medium text-text-light dark:text-text-dark mb-2">
-            Price Range
+            Price Range: ${{ priceRange[0] }} - ${{ priceRange[1] }}
           </label>
-          <div class="flex items-center justify-between mt-2">
-            <div class="flex items-center w-[45%]">
-              <span class="text-sm text-gray-500 dark:text-gray-400 mr-2">$</span>
-              <input
-                type="number"
-                v-model.number="priceRange[0]"
-                min="0"
-                max="1000"
-                placeholder="Min"
-                class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-text-light dark:text-text-dark focus:ring-2 focus:ring-primary dark:focus:ring-dark-primary focus:border-transparent text-sm"
-                @change="validatePriceInput(0)"
-              />
-            </div>
-            <div class="text-gray-500 dark:text-gray-400">to</div>
-            <div class="flex items-center w-[45%]">
-              <span class="text-sm text-gray-500 dark:text-gray-400 mr-2">$</span>
-              <input
-                type="number"
-                v-model.number="priceRange[1]"
-                min="0"
-                max="1000"
-                placeholder="Max"
-                class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-text-light dark:text-text-dark focus:ring-2 focus:ring-primary dark:focus:ring-dark-primary focus:border-transparent text-sm"
-                @change="validatePriceInput(1)"
-              />
-            </div>
+          <div class="mt-2">
+            <VueSlider
+              v-model="priceRange"
+              :min="0"
+              :max="1000"
+              :interval="10"
+              :tooltip="'always'"
+              :tooltip-formatter="val => `$${val}`"
+              :process-style="{ backgroundColor: '#FF5A5F' }"
+              :tooltip-style="{ backgroundColor: '#FF5A5F', borderColor: '#FF5A5F' }"
+              :height="4"
+              :dotSize="20"
+              :contained="true"
+            />
           </div>
-          <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Selected Range: ${{ priceRange[0] }} - ${{ priceRange[1] }}
+          <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <span>$0</span>
+            <span>$250</span>
+            <span>$500</span>
+            <span>$750</span>
+            <span>$1000</span>
           </div>
         </div>
 
@@ -310,7 +302,8 @@
 import { ref, computed, watch } from 'vue';
 import Datepicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
-// Remove slider import since we're not using it anymore
+import VueSlider from '@vueform/slider';
+import '@vueform/slider/themes/default.css';
 import { useGeolocation } from '@vueuse/core';
 
 interface Props {
@@ -381,7 +374,7 @@ const getCurrentLocation = async () => {
     const position = await new Promise<GeolocationPosition>((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(resolve, reject);
     });
-    
+
     // Convert coordinates to address using reverse geocoding
     const response = await fetch(
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}`
@@ -400,13 +393,13 @@ const validatePriceInput = (index: number) => {
   if (isNaN(priceRange.value[index]) || priceRange.value[index] === null) {
     priceRange.value[index] = index === 0 ? 0 : 1000;
   }
-  
+
   if (priceRange.value[index] < 0) {
     priceRange.value[index] = 0;
   } else if (priceRange.value[index] > 1000) {
     priceRange.value[index] = 1000;
   }
-  
+
   // Ensure min <= max
   if (index === 0 && priceRange.value[0] > priceRange.value[1]) {
     priceRange.value[0] = priceRange.value[1];

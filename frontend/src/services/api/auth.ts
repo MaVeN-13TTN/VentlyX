@@ -45,7 +45,12 @@ export interface TwoFactorChallengeData {
 export interface AuthResponse {
   user: User;
   token: string;
+  refresh_token?: string;
   two_factor_required?: boolean;
+}
+
+export interface RefreshResponse {
+  token: string;
 }
 
 export interface PasswordResetRequest {
@@ -84,14 +89,13 @@ class AuthService {
    */
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
-      const response = await apiClient.post('/auth/login', credentials);
-      
-      // If 2FA is not required, store token and user directly
+      const response = await apiClient.post<AuthResponse>('/auth/login', credentials);
+
       if (!response.data.two_factor_required) {
-        localStorage.setItem('auth_token', response.data.token);
+        this.storeTokens(response.data.token, response.data.refresh_token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
       }
-      
+
       return response.data;
     } catch (error) {
       throw error as ApiError;
@@ -103,12 +107,11 @@ class AuthService {
    */
   async twoFactorChallenge(data: TwoFactorChallengeData): Promise<AuthResponse> {
     try {
-      const response = await apiClient.post('/auth/two-factor-challenge', data);
-      
-      // Store token and user after successful 2FA
-      localStorage.setItem('auth_token', response.data.token);
+      const response = await apiClient.post<AuthResponse>('/auth/two-factor-challenge', data);
+
+      this.storeTokens(response.data.token, response.data.refresh_token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
-      
+
       return response.data;
     } catch (error) {
       throw error as ApiError;
@@ -120,12 +123,11 @@ class AuthService {
    */
   async register(data: RegistrationData): Promise<AuthResponse> {
     try {
-      const response = await apiClient.post('/auth/register', data);
-      
-      // Store token and user after successful registration
-      localStorage.setItem('auth_token', response.data.token);
+      const response = await apiClient.post<AuthResponse>('/auth/register', data);
+
+      this.storeTokens(response.data.token, response.data.refresh_token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
-      
+
       return response.data;
     } catch (error) {
       throw error as ApiError;
@@ -137,13 +139,40 @@ class AuthService {
    */
   async logout(): Promise<void> {
     try {
-      await apiClient.post('/auth/logout');
+      // Optionally tell the backend to invalidate the refresh token too
+      const refreshToken = this.getRefreshToken();
+      if (refreshToken) {
+        await apiClient.post('/auth/logout', { refresh_token: refreshToken });
+      }
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      // Always clear local storage on logout
-      localStorage.removeItem('auth_token');
+      this.clearTokens();
       localStorage.removeItem('user');
+    }
+  }
+
+  /**
+   * Refresh the authentication token
+   */
+  async refreshToken(): Promise<string | null> {
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) {
+      return null;
+    }
+
+    try {
+      const response = await apiClient.post<RefreshResponse>('/auth/refresh', {
+        refresh_token: refreshToken
+      });
+      const newAccessToken = response.data.token;
+      this.storeTokens(newAccessToken); // Store only the new access token, keep the existing refresh token
+      return newAccessToken;
+    } catch (error) {
+      console.error('Failed to refresh token:', error);
+      this.clearTokens(); // Clear tokens if refresh fails
+      localStorage.removeItem('user');
+      return null;
     }
   }
 
@@ -240,7 +269,32 @@ class AuthService {
   }
 
   /**
-   * Check if the user is authenticated
+   * Store authentication tokens
+   */
+  storeTokens(accessToken: string, refreshToken?: string): void {
+    localStorage.setItem('auth_token', accessToken);
+    if (refreshToken) {
+      localStorage.setItem('refresh_token', refreshToken);
+    }
+  }
+
+  /**
+   * Clear authentication tokens
+   */
+  clearTokens(): void {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('refresh_token');
+  }
+
+  /**
+   * Get the stored refresh token
+   */
+  getRefreshToken(): string | null {
+    return localStorage.getItem('refresh_token');
+  }
+
+  /**
+   * Check if the user is authenticated (checks access token)
    */
   isAuthenticated(): boolean {
     return localStorage.getItem('auth_token') !== null;

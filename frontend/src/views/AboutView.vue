@@ -113,10 +113,10 @@
               <div class="absolute inset-0 rounded-full bg-gradient-to-br from-accent-pink to-accent-blue animate-spin-slow opacity-0 group-hover:opacity-70 transition-opacity duration-500"></div>
               <div class="relative z-10 w-40 h-40 bg-gradient-to-br from-accent-pink to-accent-blue rounded-full mx-auto overflow-hidden ring-4 ring-white dark:ring-background-dark">
                 <!-- Replace with actual image if available -->
-                <div class="w-full h-full flex items-center justify-center text-white text-4xl font-bold">JD</div>
+                <div class="w-full h-full flex items-center justify-center text-white text-4xl font-bold">S</div>
               </div>
             </div>
-            <h3 class="text-xl font-semibold text-text-light dark:text-text-dark">Jane Doe</h3>
+            <h3 class="text-xl font-semibold text-text-light dark:text-text-dark">Samuel</h3>
             <p class="text-primary dark:text-dark-primary font-medium mb-3">CEO & Co-Founder</p>
             <p class="text-text-light/70 dark:text-text-dark/70 max-w-xs mx-auto">Visionary leader with 10+ years experience in event management and technology.</p>
             
@@ -140,10 +140,10 @@
               <div class="absolute inset-0 rounded-full bg-gradient-to-br from-secondary to-accent-blue animate-spin-slow opacity-0 group-hover:opacity-70 transition-opacity duration-500"></div>
               <div class="relative z-10 w-40 h-40 bg-gradient-to-br from-secondary to-accent-blue rounded-full mx-auto overflow-hidden ring-4 ring-white dark:ring-background-dark">
                 <!-- Replace with actual image if available -->
-                <div class="w-full h-full flex items-center justify-center text-white text-4xl font-bold">JS</div>
+                <div class="w-full h-full flex items-center justify-center text-white text-4xl font-bold">J</div>
               </div>
             </div>
-            <h3 class="text-xl font-semibold text-text-light dark:text-text-dark">John Smith</h3>
+            <h3 class="text-xl font-semibold text-text-light dark:text-text-dark">Joshua</h3>
             <p class="text-primary dark:text-dark-primary font-medium mb-3">CTO & Co-Founder</p>
             <p class="text-text-light/70 dark:text-text-dark/70 max-w-xs mx-auto">Tech enthusiast with expertise in scalable web applications and secure payment systems.</p>
             
@@ -172,10 +172,10 @@
               <div class="absolute inset-0 rounded-full bg-gradient-to-br from-accent-pink to-secondary animate-spin-slow opacity-0 group-hover:opacity-70 transition-opacity duration-500"></div>
               <div class="relative z-10 w-40 h-40 bg-gradient-to-br from-accent-pink to-secondary rounded-full mx-auto overflow-hidden ring-4 ring-white dark:ring-background-dark">
                 <!-- Replace with actual image if available -->
-                <div class="w-full h-full flex items-center justify-center text-white text-4xl font-bold">SJ</div>
+                <div class="w-full h-full flex items-center justify-center text-white text-4xl font-bold">W</div>
               </div>
             </div>
-            <h3 class="text-xl font-semibold text-text-light dark:text-text-dark">Sarah Johnson</h3>
+            <h3 class="text-xl font-semibold text-text-light dark:text-text-dark">Wesley</h3>
             <p class="text-primary dark:text-dark-primary font-medium mb-3">Head of Operations</p>
             <p class="text-text-light/70 dark:text-text-dark/70 max-w-xs mx-auto">Operations expert focused on creating seamless experiences for event organizers and attendees.</p>
             

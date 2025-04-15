@@ -407,6 +407,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useHead } from '@vueuse/head';
 import EventService from '@/services/api/EventService';
 import { useNotificationStore } from '@/stores/notification';
 import L from 'leaflet';
@@ -441,6 +442,66 @@ const hasAvailableTickets = computed(() => {
   return event.value.ticket_types.some((ticket: any) => ticket.available_quantity > 0);
 });
 
+// Add SEO metadata and structured data
+const updateSEO = () => {
+  if (!event.value || !event.value.title) return;
+
+  const eventData = event.value;
+  const startDate = new Date(eventData.start_time);
+  const endDate = eventData.end_time ? new Date(eventData.end_time) : new Date(startDate.getTime() + 2 * 60 * 60 * 1000); // Default 2 hours
+
+  // Format dates for Schema.org
+  const startDateISO = startDate.toISOString();
+  const endDateISO = endDate.toISOString();
+
+  // Create Schema.org Event structured data
+  const schemaData = {
+    '@context': 'https://schema.org',
+    '@type': 'Event',
+    'name': eventData.title,
+    'description': eventData.description,
+    'startDate': startDateISO,
+    'endDate': endDateISO,
+    'location': {
+      '@type': 'Place',
+      'name': eventData.location,
+      'address': eventData.location
+    },
+    'image': eventData.image_url || '',
+    'offers': {
+      '@type': 'Offer',
+      'price': eventData.min_price || '0',
+      'priceCurrency': 'USD',
+      'availability': 'https://schema.org/InStock',
+      'url': window.location.href
+    },
+    'organizer': {
+      '@type': 'Organization',
+      'name': eventData.organizer?.name || 'Event Organizer',
+      'url': window.location.origin
+    }
+  };
+
+  useHead({
+    title: `${eventData.title} | VentlyX`,
+    meta: [
+      { name: 'description', content: eventData.description?.substring(0, 160) || 'Event details' },
+      { property: 'og:title', content: eventData.title },
+      { property: 'og:description', content: eventData.description?.substring(0, 160) || 'Event details' },
+      { property: 'og:image', content: eventData.image_url || '' },
+      { property: 'og:url', content: window.location.href },
+      { property: 'og:type', content: 'website' },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: eventData.title },
+      { name: 'twitter:description', content: eventData.description?.substring(0, 160) || 'Event details' },
+      { name: 'twitter:image', content: eventData.image_url || '' }
+    ],
+    script: [
+      { innerHTML: JSON.stringify(schemaData), type: 'application/ld+json' }
+    ]
+  });
+};
+
 // Fetch the event data
 const fetchEvent = async () => {
   const eventId = Number(route.params.id);
@@ -457,6 +518,9 @@ const fetchEvent = async () => {
     const response = await eventService.getEvent(eventId);
     event.value = response.data;
     shareUrl.value = window.location.href;
+
+    // Update SEO metadata and structured data
+    updateSEO();
 
     // Fetch related events
     fetchRelatedEvents();

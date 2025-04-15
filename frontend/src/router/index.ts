@@ -25,7 +25,7 @@ const router = createRouter({
       name: 'about',
       component: () => import('@/views/AboutView.vue')
     },
-    
+
     // Auth routes
     {
       path: '/login',
@@ -71,6 +71,23 @@ const router = createRouter({
       component: DashboardView,
       meta: { requiresAuth: true }
     },
+    {
+      path: '/tickets',
+      children: [
+        {
+          path: '',
+          name: 'my-tickets',
+          component: () => import('@/views/tickets/MyTicketsView.vue'),
+          meta: { requiresAuth: true }
+        },
+        {
+          path: ':id',
+          name: 'ticket-details',
+          component: () => import('@/views/tickets/TicketView.vue'),
+          meta: { requiresAuth: true }
+        }
+      ]
+    },
 
     // Event routes
     {
@@ -85,6 +102,24 @@ const router = createRouter({
           path: ':id',
           name: 'event-details',
           component: () => import('@/views/events/EventDetailsView.vue')
+        },
+        {
+          path: ':id/booking',
+          name: 'event-booking',
+          component: () => import('@/views/events/EventBookingView.vue'),
+          meta: { requiresAuth: true }
+        },
+        {
+          path: ':id/checkout',
+          name: 'event-checkout',
+          component: () => import('@/views/events/CheckoutView.vue'),
+          meta: { requiresAuth: true }
+        },
+        {
+          path: 'payment-success',
+          name: 'payment-success',
+          component: () => import('@/views/events/PaymentSuccessView.vue'),
+          meta: { requiresAuth: true }
         },
         {
           path: 'create',

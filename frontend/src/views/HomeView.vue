@@ -176,13 +176,29 @@
           <p class="text-text-light/70 dark:text-text-dark/70 mb-4">No upcoming events found</p>
         </div>
 
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <EventCard
-            v-for="(event, index) in upcomingEvents"
-            :key="event.id"
-            :event="event"
-            :color-index="index"
-          />
+        <div v-else>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <EventCard
+              v-for="(event, index) in events"
+              :key="event.id"
+              :event="event"
+              :color-index="index"
+            />
+          </div>
+
+          <!-- Load more trigger -->
+          <div ref="loadMoreTrigger" class="mt-8 text-center">
+            <div v-if="loadingMore" class="py-4">
+              <div class="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary dark:border-dark-primary"></div>
+              <span class="ml-2 text-text-light/70 dark:text-text-dark/70">Loading more events...</span>
+            </div>
+            <div v-else-if="hasMorePages" class="py-4 text-text-light/70 dark:text-text-dark/70">
+              Scroll for more events
+            </div>
+            <div v-else class="py-4 text-text-light/70 dark:text-text-dark/70">
+              No more events to load
+            </div>
+          </div>
         </div>
       </div>
 
@@ -339,6 +355,9 @@ const loadingFeatured = ref(true);
 const loadingCategorized = ref(true);
 const loadingMore = ref(false);
 
+// Lazy loading
+const loadMoreTrigger = ref<HTMLElement | null>(null);
+
 // Pagination
 const currentPage = ref(1);
 const totalPages = ref(1);
@@ -439,10 +458,31 @@ onMounted(async () => {
     if (categories.value.length > 0) {
       await fetchEventsByCategories();
     }
+
+    // Setup intersection observer for lazy loading
+    setupIntersectionObserver();
   } catch (error) {
     console.error('Error loading initial data:', error);
   }
 });
+
+// Setup intersection observer for lazy loading
+const setupIntersectionObserver = () => {
+  if (!loadMoreTrigger.value) return;
+
+  const observer = new IntersectionObserver((entries) => {
+    const [entry] = entries;
+    if (entry.isIntersecting && !isLoading.value && !loadingMore.value && hasMorePages.value) {
+      loadMore();
+    }
+  }, {
+    root: null,
+    threshold: 0.1,
+    rootMargin: '0px 0px 200px 0px' // Load more when trigger is 200px from viewport
+  });
+
+  observer.observe(loadMoreTrigger.value);
+};
 
 onUnmounted(() => {
   stopAutoPlay();
@@ -485,16 +525,26 @@ const fetchFeaturedEvents = async () => {
   }
 };
 
-// Fetch all events for filtering
+// Fetch all events for filtering with lazy loading
 const fetchAllEvents = async () => {
   isLoading.value = true;
   try {
-    const response = await eventService.getEvents({ per_page: 20 });
-    events.value = response.data.data || [];
+    const response = await eventService.getEvents({ per_page: 6, page: currentPage.value });
+
+    // If it's the first page, replace the events array
+    // Otherwise, append to the existing array for infinite scrolling
+    if (currentPage.value === 1) {
+      events.value = response.data.data || [];
+    } else {
+      events.value = [...events.value, ...(response.data.data || [])];
+    }
+
     totalPages.value = Math.ceil(response.data.meta.total / response.data.meta.per_page);
   } catch (error) {
     console.error('Error fetching all events:', error);
-    events.value = [];
+    if (currentPage.value === 1) {
+      events.value = [];
+    }
     totalPages.value = 1;
   } finally {
     isLoading.value = false;
@@ -707,8 +757,7 @@ const resetSlideProgress = () => {
 const upcomingEvents = computed(() => {
   return events.value
     .filter((event: EventData) => new Date(event.start_time) > new Date())
-    .sort((a: EventData, b: EventData) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
-    .slice(0, 6); // Limit to 6 events for display
+    .sort((a: EventData, b: EventData) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
 });
 </script>
 
