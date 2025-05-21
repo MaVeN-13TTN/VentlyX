@@ -1,17 +1,19 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import type { 
-  User, 
-  LoginCredentials, 
-  RegistrationData, 
-  TwoFactorChallengeData, 
-  AuthResponse, 
-  PasswordResetRequest, 
+import type {
+  User,
+  LoginCredentials,
+  RegistrationData,
+  TwoFactorChallengeData,
+  AuthResponse,
+  PasswordResetRequest,
   PasswordResetConfirmation,
   ProfileUpdateData,
   PasswordChangeData,
   TwoFactorSetupResponse,
-  TwoFactorConfirmResponse
+  TwoFactorConfirmResponse,
+  UserPreferences,
+  DeleteAccountData
 } from '@/services/api/auth';
 import authService from '@/services/api/auth';
 
@@ -23,8 +25,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Getters
   const isAuthenticated = computed(() => !!token.value);
-  const isAdmin = computed(() => user.value?.roles.some(role => role.name === 'admin') ?? false);
-  const isOrganizer = computed(() => user.value?.roles.some(role => role.name === 'organizer') ?? false);
+  const isAdmin = computed(() => user.value?.roles.some(role => role.name.toLowerCase() === 'admin') ?? false);
+  const isOrganizer = computed(() => user.value?.roles.some(role => role.name.toLowerCase() === 'organizer') ?? false);
 
   // Actions
   const setUser = (newUser: User | null) => {
@@ -51,7 +53,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
     const response = await authService.login(credentials);
-    
+
     if (response.two_factor_required) {
       setTwoFactorRequired(true);
     } else {
@@ -59,7 +61,7 @@ export const useAuthStore = defineStore('auth', () => {
       setUser(response.user);
       setTwoFactorRequired(false);
     }
-    
+
     return response;
   };
 
@@ -142,7 +144,25 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   const hasRole = (roleName: string): boolean => {
-    return user.value?.roles.some(role => role.name === roleName) ?? false;
+    return user.value?.roles.some(role => role.name.toLowerCase() === roleName.toLowerCase()) ?? false;
+  };
+
+  const uploadProfileImage = async (file: File): Promise<User> => {
+    const updatedUser = await authService.uploadProfileImage(file);
+    setUser(updatedUser);
+    return updatedUser;
+  };
+
+  const updatePreferences = async (preferences: UserPreferences): Promise<User> => {
+    const updatedUser = await authService.updatePreferences(preferences);
+    setUser(updatedUser);
+    return updatedUser;
+  };
+
+  const deleteAccount = async (password: string): Promise<void> => {
+    await authService.deleteAccount({ password });
+    setToken(null);
+    setUser(null);
   };
 
   // Initialize user from localStorage if available
@@ -161,12 +181,12 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     token,
     twoFactorRequired,
-    
+
     // Getters
     isAuthenticated,
     isAdmin,
     isOrganizer,
-    
+
     // Actions
     login,
     register,
@@ -181,6 +201,9 @@ export const useAuthStore = defineStore('auth', () => {
     generateTwoFactorSetup,
     confirmTwoFactorSetup,
     disableTwoFactor,
-    hasRole
+    hasRole,
+    uploadProfileImage,
+    updatePreferences,
+    deleteAccount
   };
 });

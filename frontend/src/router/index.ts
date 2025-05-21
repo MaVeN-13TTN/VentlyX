@@ -155,6 +155,11 @@ const router = createRouter({
           path: 'analytics',
           name: 'organizer-analytics',
           component: () => import('@/views/organizer/AnalyticsView.vue')
+        },
+        {
+          path: 'attendees',
+          name: 'organizer-attendees',
+          component: () => import('@/views/organizer/AttendeesView.vue')
         }
       ]
     },

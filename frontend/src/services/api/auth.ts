@@ -51,6 +51,8 @@ export interface AuthResponse {
 
 export interface RefreshResponse {
   token: string;
+  refresh_token: string;
+  token_type: string;
 }
 
 export interface PasswordResetRequest {
@@ -64,9 +66,17 @@ export interface PasswordResetConfirmation {
   password_confirmation: string;
 }
 
+export interface UserPreferences {
+  email_notifications: boolean;
+  sms_notifications: boolean;
+  marketing_emails: boolean;
+  public_profile: boolean;
+}
+
 export interface ProfileUpdateData {
   name: string;
   phone_number?: string;
+  preferences?: UserPreferences;
 }
 
 export interface PasswordChangeData {
@@ -81,6 +91,10 @@ export interface TwoFactorSetupResponse {
 
 export interface TwoFactorConfirmResponse {
   recovery_codes: string[];
+}
+
+export interface DeleteAccountData {
+  password: string;
 }
 
 class AuthService {
@@ -154,22 +168,42 @@ class AuthService {
 
   /**
    * Refresh the authentication token
+   * Handles token rotation by storing the new refresh token
    */
   async refreshToken(): Promise<string | null> {
     const refreshToken = this.getRefreshToken();
     if (!refreshToken) {
+      console.warn('No refresh token available');
       return null;
     }
 
     try {
+      console.log('Attempting to refresh token');
       const response = await apiClient.post<RefreshResponse>('/auth/refresh', {
         refresh_token: refreshToken
       });
+
       const newAccessToken = response.data.token;
-      this.storeTokens(newAccessToken); // Store only the new access token, keep the existing refresh token
+      const newRefreshToken = response.data.refresh_token;
+
+      if (!newAccessToken || !newRefreshToken) {
+        console.error('Invalid response from refresh endpoint', response.data);
+        this.clearTokens();
+        localStorage.removeItem('user');
+        return null;
+      }
+
+      console.log('Token refresh successful');
+      // Store both the new access token and refresh token (token rotation)
+      this.storeTokens(newAccessToken, newRefreshToken);
       return newAccessToken;
     } catch (error) {
       console.error('Failed to refresh token:', error);
+      // Log more details about the error
+      if ((error as ApiError).message) {
+        console.error('Error message:', (error as ApiError).message);
+      }
+
       this.clearTokens(); // Clear tokens if refresh fails
       localStorage.removeItem('user');
       return null;
@@ -314,6 +348,66 @@ class AuthService {
   hasRole(roleName: string): boolean {
     const user = this.getUser();
     return user?.roles?.some(role => role.name === roleName) || false;
+  }
+
+  /**
+   * Upload profile image
+   */
+  async uploadProfileImage(file: File): Promise<User> {
+    try {
+      const formData = new FormData();
+      formData.append('profile_image', file);
+
+      const response = await apiClient.post('/profile/image', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      // Update the stored user with the new profile image
+      const user = this.getUser();
+      if (user) {
+        user.profile_picture = response.data.user.profile_picture;
+        localStorage.setItem('user', JSON.stringify(user));
+      }
+
+      return response.data.user;
+    } catch (error) {
+      throw error as ApiError;
+    }
+  }
+
+  /**
+   * Update user preferences
+   */
+  async updatePreferences(preferences: UserPreferences): Promise<User> {
+    try {
+      const response = await apiClient.put('/profile/preferences', { preferences });
+
+      // Update the stored user
+      const user = this.getUser();
+      if (user) {
+        user.preferences = preferences;
+        localStorage.setItem('user', JSON.stringify(user));
+      }
+
+      return response.data.user;
+    } catch (error) {
+      throw error as ApiError;
+    }
+  }
+
+  /**
+   * Delete user account
+   */
+  async deleteAccount(data: DeleteAccountData): Promise<void> {
+    try {
+      await apiClient.delete('/profile', { data });
+      this.clearTokens();
+      localStorage.removeItem('user');
+    } catch (error) {
+      throw error as ApiError;
+    }
   }
 }
 

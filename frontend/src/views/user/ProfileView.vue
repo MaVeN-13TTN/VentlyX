@@ -1,51 +1,114 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { useAuthStore } from '@/stores/auth';
-import { useNotificationStore } from '@/stores/notification';
-import BaseInput from '@/components/common/BaseInput.vue';
-import BaseButton from '@/components/common/BaseButton.vue';
-import BaseDialog from '@/components/common/BaseDialog.vue';
-import LoadingSpinner from '@/components/common/LoadingSpinner.vue';
+import { ref, computed } from "vue";
+import { useAuthStore } from "@/stores/auth";
+import { useNotificationStore } from "@/stores/notification";
+import BaseInput from "@/components/common/BaseInput.vue";
+import BaseButton from "@/components/common/BaseButton.vue";
+import BaseDialog from "@/components/common/BaseDialog.vue";
+import LoadingSpinner from "@/components/common/LoadingSpinner.vue";
+import ProfileImageUpload from "@/components/profile/ProfileImageUpload.vue";
+import PasswordStrengthMeter from "@/components/profile/PasswordStrengthMeter.vue";
+import UserPreferences from "@/components/profile/UserPreferences.vue";
+import AccountDeletion from "@/components/profile/AccountDeletion.vue";
+import type { UserPreferences as UserPreferencesType } from "@/services/api/auth";
 
 const authStore = useAuthStore();
 const notificationStore = useNotificationStore();
 
 const user = computed(() => authStore.user);
 const loading = ref(false);
-const error = ref('');
+const error = ref("");
 
 // Profile form data
-const name = ref(user.value?.name || '');
-const email = ref(user.value?.email || '');
-const phoneNumber = ref(user.value?.phone_number || '');
+const name = ref(user.value?.name || "");
+const email = ref(user.value?.email || "");
+const phoneNumber = ref(user.value?.phone_number || "");
+const profileImage = ref<File | null>(null);
+
+// User preferences
+const userPreferences = ref<UserPreferencesType>({
+  email_notifications: user.value?.preferences?.email_notifications ?? true,
+  sms_notifications: user.value?.preferences?.sms_notifications ?? false,
+  marketing_emails: user.value?.preferences?.marketing_emails ?? true,
+  public_profile: user.value?.preferences?.public_profile ?? false,
+});
 
 // Password change form data
-const currentPassword = ref('');
-const newPassword = ref('');
-const newPasswordConfirmation = ref('');
+const currentPassword = ref("");
+const newPassword = ref("");
+const newPasswordConfirmation = ref("");
 
 // 2FA data
 const showEnableTwoFactorDialog = ref(false);
 const showDisableTwoFactorDialog = ref(false);
 const showQrCode = ref(false);
-const qrCodeUrl = ref('');
-const twoFactorCode = ref('');
+const qrCodeUrl = ref("");
+const twoFactorCode = ref("");
 const recoveryCodes = ref<string[]>([]);
 
 // Profile update handler
 const updateProfile = async () => {
   loading.value = true;
-  error.value = '';
+  error.value = "";
 
   try {
     await authStore.updateProfile({
       name: name.value,
-      phone_number: phoneNumber.value || undefined
+      phone_number: phoneNumber.value || undefined,
+      preferences: userPreferences.value,
     });
-    
-    notificationStore.success('Profile updated successfully');
+
+    notificationStore.success("Profile updated successfully");
   } catch (err: any) {
-    error.value = err.message || 'Failed to update profile';
+    error.value = err.message || "Failed to update profile";
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Profile image upload handler
+const handleProfileImageUpload = async (file: File) => {
+  loading.value = true;
+  error.value = "";
+
+  try {
+    await authStore.uploadProfileImage(file);
+    notificationStore.success("Profile image updated successfully");
+  } catch (err: any) {
+    error.value = err.message || "Failed to upload profile image";
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Preferences update handler
+const updateUserPreferences = async (preferences: UserPreferencesType) => {
+  loading.value = true;
+  error.value = "";
+
+  try {
+    await authStore.updatePreferences(preferences);
+    userPreferences.value = preferences;
+    notificationStore.success("Preferences updated successfully");
+  } catch (err: any) {
+    error.value = err.message || "Failed to update preferences";
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Account deletion handler
+const handleAccountDeletion = async (password: string) => {
+  loading.value = true;
+  error.value = "";
+
+  try {
+    await authStore.deleteAccount(password);
+    notificationStore.success("Account deleted successfully");
+    // Redirect to home page after account deletion
+    window.location.href = "/";
+  } catch (err: any) {
+    error.value = err.message || "Failed to delete account";
   } finally {
     loading.value = false;
   }
@@ -54,28 +117,28 @@ const updateProfile = async () => {
 // Password change handler
 const changePassword = async () => {
   if (newPassword.value !== newPasswordConfirmation.value) {
-    error.value = 'New passwords do not match';
+    error.value = "New passwords do not match";
     return;
   }
 
   loading.value = true;
-  error.value = '';
+  error.value = "";
 
   try {
     await authStore.changePassword({
       current_password: currentPassword.value,
       password: newPassword.value,
-      password_confirmation: newPasswordConfirmation.value
+      password_confirmation: newPasswordConfirmation.value,
     });
 
     // Clear password fields
-    currentPassword.value = '';
-    newPassword.value = '';
-    newPasswordConfirmation.value = '';
-    
-    notificationStore.success('Password changed successfully');
+    currentPassword.value = "";
+    newPassword.value = "";
+    newPasswordConfirmation.value = "";
+
+    notificationStore.success("Password changed successfully");
   } catch (err: any) {
-    error.value = err.message || 'Failed to change password';
+    error.value = err.message || "Failed to change password";
   } finally {
     loading.value = false;
   }
@@ -84,7 +147,7 @@ const changePassword = async () => {
 // 2FA handlers
 const initiateTwoFactorSetup = async () => {
   loading.value = true;
-  error.value = '';
+  error.value = "";
 
   try {
     const response = await authStore.generateTwoFactorSetup();
@@ -92,7 +155,7 @@ const initiateTwoFactorSetup = async () => {
     showQrCode.value = true;
     showEnableTwoFactorDialog.value = true;
   } catch (err: any) {
-    error.value = err.message || 'Failed to setup two-factor authentication';
+    error.value = err.message || "Failed to setup two-factor authentication";
   } finally {
     loading.value = false;
   }
@@ -100,16 +163,16 @@ const initiateTwoFactorSetup = async () => {
 
 const confirmTwoFactorSetup = async () => {
   loading.value = true;
-  error.value = '';
+  error.value = "";
 
   try {
     const response = await authStore.confirmTwoFactorSetup(twoFactorCode.value);
     recoveryCodes.value = response.recovery_codes;
     showQrCode.value = false;
-    twoFactorCode.value = '';
-    notificationStore.success('Two-factor authentication enabled successfully');
+    twoFactorCode.value = "";
+    notificationStore.success("Two-factor authentication enabled successfully");
   } catch (err: any) {
-    error.value = err.message || 'Failed to confirm two-factor authentication';
+    error.value = err.message || "Failed to confirm two-factor authentication";
   } finally {
     loading.value = false;
   }
@@ -117,14 +180,16 @@ const confirmTwoFactorSetup = async () => {
 
 const disableTwoFactor = async () => {
   loading.value = true;
-  error.value = '';
+  error.value = "";
 
   try {
     await authStore.disableTwoFactor();
     showDisableTwoFactorDialog.value = false;
-    notificationStore.success('Two-factor authentication disabled successfully');
+    notificationStore.success(
+      "Two-factor authentication disabled successfully"
+    );
   } catch (err: any) {
-    error.value = err.message || 'Failed to disable two-factor authentication';
+    error.value = err.message || "Failed to disable two-factor authentication";
   } finally {
     loading.value = false;
   }
@@ -140,8 +205,17 @@ const disableTwoFactor = async () => {
       <div v-if="error" class="mb-6 rounded-md bg-red-50 p-4">
         <div class="flex">
           <div class="flex-shrink-0">
-            <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+            <svg
+              class="h-5 w-5 text-red-400"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clip-rule="evenodd"
+              />
             </svg>
           </div>
           <div class="ml-3">
@@ -153,37 +227,48 @@ const disableTwoFactor = async () => {
       <!-- Profile Section -->
       <div class="bg-white shadow rounded-lg mb-8">
         <div class="px-4 py-5 sm:p-6">
-          <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Profile Information</h3>
-          <div class="space-y-6">
-            <BaseInput
-              v-model="name"
-              label="Name"
-              required
-              placeholder="Your full name"
-            />
+          <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">
+            Profile Information
+          </h3>
 
-            <BaseInput
-              v-model="email"
-              type="email"
-              label="Email"
-              disabled
-              placeholder="Your email address"
-            />
+          <div class="flex flex-col md:flex-row gap-8 mb-6">
+            <!-- Profile Image Upload -->
+            <div class="flex-shrink-0">
+              <ProfileImageUpload
+                :current-image="user?.profile_picture"
+                @upload-success="handleProfileImageUpload"
+              />
+            </div>
 
-            <BaseInput
-              v-model="phoneNumber"
-              type="tel"
-              label="Phone Number (optional)"
-              placeholder="Your phone number"
-            />
+            <!-- Profile Form -->
+            <div class="flex-grow space-y-6">
+              <BaseInput
+                v-model="name"
+                label="Name"
+                required
+                placeholder="Your full name"
+              />
 
-            <div class="flex justify-end">
-              <BaseButton
-                @click="updateProfile"
-                :loading="loading"
-              >
-                Update Profile
-              </BaseButton>
+              <BaseInput
+                v-model="email"
+                type="email"
+                label="Email"
+                disabled
+                placeholder="Your email address"
+              />
+
+              <BaseInput
+                v-model="phoneNumber"
+                type="tel"
+                label="Phone Number (optional)"
+                placeholder="Your phone number"
+              />
+
+              <div class="flex justify-end">
+                <BaseButton @click="updateProfile" :loading="loading">
+                  Update Profile
+                </BaseButton>
+              </div>
             </div>
           </div>
         </div>
@@ -192,7 +277,9 @@ const disableTwoFactor = async () => {
       <!-- Password Section -->
       <div class="bg-white shadow rounded-lg mb-8">
         <div class="px-4 py-5 sm:p-6">
-          <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Change Password</h3>
+          <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">
+            Change Password
+          </h3>
           <div class="space-y-6">
             <BaseInput
               v-model="currentPassword"
@@ -202,13 +289,16 @@ const disableTwoFactor = async () => {
               placeholder="Enter your current password"
             />
 
-            <BaseInput
-              v-model="newPassword"
-              type="password"
-              label="New Password"
-              required
-              placeholder="Enter your new password"
-            />
+            <div>
+              <BaseInput
+                v-model="newPassword"
+                type="password"
+                label="New Password"
+                required
+                placeholder="Enter your new password"
+              />
+              <PasswordStrengthMeter :password="newPassword" />
+            </div>
 
             <BaseInput
               v-model="newPasswordConfirmation"
@@ -219,10 +309,7 @@ const disableTwoFactor = async () => {
             />
 
             <div class="flex justify-end">
-              <BaseButton
-                @click="changePassword"
-                :loading="loading"
-              >
+              <BaseButton @click="changePassword" :loading="loading">
                 Change Password
               </BaseButton>
             </div>
@@ -230,20 +317,42 @@ const disableTwoFactor = async () => {
         </div>
       </div>
 
-      <!-- Two-Factor Authentication Section -->
-      <div class="bg-white shadow rounded-lg">
+      <!-- User Preferences Section -->
+      <div class="bg-white shadow rounded-lg mb-8">
         <div class="px-4 py-5 sm:p-6">
-          <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Two-Factor Authentication</h3>
-          
+          <UserPreferences
+            :initial-preferences="userPreferences"
+            @save="updateUserPreferences"
+          />
+        </div>
+      </div>
+
+      <!-- Two-Factor Authentication Section -->
+      <div class="bg-white shadow rounded-lg mb-8">
+        <div class="px-4 py-5 sm:p-6">
+          <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">
+            Two-Factor Authentication
+          </h3>
+
           <p class="text-sm text-gray-500 mb-4">
-            Add additional security to your account using two-factor authentication.
+            Add additional security to your account using two-factor
+            authentication.
           </p>
 
           <template v-if="user?.two_factor_enabled">
             <div class="flex items-center justify-between">
               <div class="text-sm text-green-600">
-                <svg class="inline-block h-5 w-5 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                <svg
+                  class="inline-block h-5 w-5 mr-1"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clip-rule="evenodd"
+                  />
                 </svg>
                 Two-factor authentication is enabled
               </div>
@@ -266,6 +375,15 @@ const disableTwoFactor = async () => {
           </template>
         </div>
       </div>
+
+      <!-- Account Deletion Section -->
+      <div class="bg-white shadow rounded-lg mt-8">
+        <div
+          class="px-4 py-5 sm:p-6 border-t-2 border-red-200 dark:border-red-800"
+        >
+          <AccountDeletion @delete-account="handleAccountDeletion" />
+        </div>
+      </div>
     </div>
   </div>
 
@@ -282,7 +400,11 @@ const disableTwoFactor = async () => {
         </p>
 
         <div class="flex justify-center">
-          <img :src="qrCodeUrl" alt="Two-factor authentication QR code" class="h-48 w-48" />
+          <img
+            :src="qrCodeUrl"
+            alt="Two-factor authentication QR code"
+            class="h-48 w-48"
+          />
         </div>
 
         <BaseInput
@@ -312,7 +434,9 @@ const disableTwoFactor = async () => {
     <template v-else-if="recoveryCodes.length">
       <div class="space-y-4">
         <p class="text-sm text-gray-500">
-          Store these recovery codes in a secure location. They can be used to recover access to your account if your two-factor authentication device is lost.
+          Store these recovery codes in a secure location. They can be used to
+          recover access to your account if your two-factor authentication
+          device is lost.
         </p>
 
         <div class="bg-gray-50 p-4 rounded-md font-mono text-sm">
@@ -339,21 +463,15 @@ const disableTwoFactor = async () => {
     title="Disable Two-Factor Authentication"
   >
     <p class="text-sm text-gray-500">
-      Are you sure you want to disable two-factor authentication? This will decrease the security of your account.
+      Are you sure you want to disable two-factor authentication? This will
+      decrease the security of your account.
     </p>
 
     <template #footer>
-      <BaseButton
-        variant="outline"
-        @click="showDisableTwoFactorDialog = false"
-      >
+      <BaseButton variant="outline" @click="showDisableTwoFactorDialog = false">
         Cancel
       </BaseButton>
-      <BaseButton
-        variant="danger"
-        @click="disableTwoFactor"
-        :loading="loading"
-      >
+      <BaseButton variant="danger" @click="disableTwoFactor" :loading="loading">
         Disable
       </BaseButton>
     </template>

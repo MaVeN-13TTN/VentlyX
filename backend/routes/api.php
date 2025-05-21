@@ -14,6 +14,8 @@ use App\Http\Controllers\API\MPesaPaymentController;
 use App\Http\Controllers\API\UserManagementController;
 use App\Http\Controllers\API\CheckInController;
 use App\Http\Controllers\API\NotificationController;
+use App\Http\Controllers\API\UserAnalyticsController;
+use App\Http\Controllers\API\SavedEventController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -95,6 +97,20 @@ Route::prefix('v1')->group(function () {
             Route::get('/preferences', [NotificationController::class, 'getPreferences']);
             Route::put('/preferences', [NotificationController::class, 'updatePreferences']);
         });
+
+        // User analytics routes
+        Route::prefix('analytics')->group(function () {
+            Route::get('/user-dashboard', [UserAnalyticsController::class, 'getUserDashboard']);
+        });
+
+        // Saved events routes
+        Route::prefix('events')->group(function () {
+            Route::post('/{id}/save', [SavedEventController::class, 'saveEvent']);
+            Route::delete('/{id}/save', [SavedEventController::class, 'removeSavedEvent']);
+        });
+
+        // Get saved events (separate route to avoid conflict with event/{id})
+        Route::get('/saved-events', [SavedEventController::class, 'getSavedEvents']);
 
         // Booking routes
         Route::middleware('throttle:bookings')->group(function () {

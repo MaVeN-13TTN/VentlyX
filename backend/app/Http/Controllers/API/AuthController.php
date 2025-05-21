@@ -12,6 +12,7 @@ use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Str;
@@ -42,11 +43,19 @@ class AuthController extends Controller
             $user->roles()->attach($userRole);
         }
 
-        // Create access token
-        $token = $user->createToken('auth_token')->plainTextToken;
+        // Create access token with expiration from config
+        $token = $user->createToken(
+            'auth_token',
+            [],
+            now()->addMinutes(config('sanctum.expiration', 60))
+        )->plainTextToken;
 
-        // Create refresh token
-        $refreshToken = $user->createToken('refresh_token', ['refresh'])->plainTextToken;
+        // Create refresh token with longer expiration
+        $refreshToken = $user->createToken(
+            'refresh_token',
+            ['refresh'],
+            now()->addMinutes(config('sanctum.refresh_expiration', 20160))
+        )->plainTextToken;
 
         return response()->json([
             'message' => 'User registered successfully',
@@ -78,11 +87,19 @@ class AuthController extends Controller
         // Delete previous tokens
         $user->tokens()->delete();
 
-        // Create new access token
-        $token = $user->createToken('auth_token')->plainTextToken;
+        // Create new access token with expiration from config
+        $token = $user->createToken(
+            'auth_token',
+            [],
+            now()->addMinutes(config('sanctum.expiration', 60))
+        )->plainTextToken;
 
-        // Create refresh token
-        $refreshToken = $user->createToken('refresh_token', ['refresh'])->plainTextToken;
+        // Create refresh token with longer expiration
+        $refreshToken = $user->createToken(
+            'refresh_token',
+            ['refresh'],
+            now()->addMinutes(config('sanctum.refresh_expiration', 20160))
+        )->plainTextToken;
 
         return response()->json([
             'message' => 'Login successful',
@@ -124,6 +141,7 @@ class AuthController extends Controller
 
     /**
      * Refresh the access token using a refresh token.
+     * Implements token rotation by issuing a new refresh token and invalidating the old one.
      *
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
@@ -138,7 +156,10 @@ class AuthController extends Controller
         $refreshToken = $request->refresh_token;
         $tokenId = explode('|', $refreshToken)[0] ?? null;
 
+        Log::info('Token refresh attempt', ['token_id' => $tokenId]);
+
         if (!$tokenId) {
+            Log::warning('Invalid refresh token format');
             return response()->json([
                 'message' => 'Invalid refresh token format'
             ], 401);
@@ -147,7 +168,15 @@ class AuthController extends Controller
         // Find the token in the database
         $token = PersonalAccessToken::find($tokenId);
 
-        if (!$token || !$token->can('refresh')) {
+        if (!$token) {
+            Log::warning('Refresh token not found', ['token_id' => $tokenId]);
+            return response()->json([
+                'message' => 'Invalid refresh token'
+            ], 401);
+        }
+
+        if (!$token->can('refresh')) {
+            Log::warning('Token does not have refresh ability', ['token_id' => $tokenId]);
             return response()->json([
                 'message' => 'Invalid refresh token'
             ], 401);
@@ -157,16 +186,34 @@ class AuthController extends Controller
         $user = $token->tokenable;
 
         if (!$user) {
+            Log::warning('User not found for token', ['token_id' => $tokenId]);
             return response()->json([
                 'message' => 'User not found'
             ], 401);
         }
 
-        // Create a new access token
-        $newAccessToken = $user->createToken('auth_token')->plainTextToken;
+        Log::info('Token refresh successful', ['user_id' => $user->id, 'token_id' => $tokenId]);
+
+        // Delete the old refresh token for security (token rotation)
+        $token->delete();
+
+        // Create a new access token with expiration from config
+        $newAccessToken = $user->createToken(
+            'auth_token',
+            [],
+            now()->addMinutes(config('sanctum.expiration', 60))
+        )->plainTextToken;
+
+        // Create a new refresh token with longer expiration (token rotation)
+        $newRefreshToken = $user->createToken(
+            'refresh_token',
+            ['refresh'],
+            now()->addMinutes(config('sanctum.refresh_expiration', 20160))
+        )->plainTextToken;
 
         return response()->json([
             'token' => $newAccessToken,
+            'refresh_token' => $newRefreshToken,
             'token_type' => 'Bearer',
         ]);
     }
