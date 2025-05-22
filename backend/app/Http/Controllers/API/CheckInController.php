@@ -8,6 +8,8 @@ use App\Models\Event;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use League\Csv\Writer;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CheckInController extends Controller
 {
@@ -312,5 +314,71 @@ class CheckInController extends Controller
             'success' => $success,
             'failed' => $failed
         ]);
+    }
+    
+    /**
+     * Export attendees list as CSV
+     */
+    public function exportAttendees(Request $request, string $eventId)
+    {
+        $event = Event::findOrFail($eventId);
+        
+        // Ensure the user is authorized to access this event's data
+        if ($request->user()->id !== $event->organizer_id && !$request->user()->hasRole('Admin')) {
+            return response()->json(['message' => 'Unauthorized to access this event'], 403);
+        }
+        
+        $attendees = Booking::with(['user', 'ticketType'])
+            ->where('event_id', $eventId)
+            ->where('status', 'confirmed')
+            ->get();
+            
+        // Create CSV
+        $csv = Writer::createFromString('');
+        
+        // Add headers
+        $csv->insertOne([
+            'Booking ID',
+            'Booking Reference',
+            'Name',
+            'Email',
+            'Phone',
+            'Ticket Type',
+            'Quantity',
+            'Total Price',
+            'Booking Date',
+            'Check-in Status',
+            'Check-in Time'
+        ]);
+        
+        // Add data
+        foreach ($attendees as $attendee) {
+            $csv->insertOne([
+                $attendee->id,
+                $attendee->booking_reference,
+                $attendee->user->name,
+                $attendee->user->email,
+                $attendee->user->phone_number ?? 'N/A',
+                $attendee->ticketType->name,
+                $attendee->quantity,
+                $attendee->total_price,
+                $attendee->created_at->format('Y-m-d H:i:s'),
+                $attendee->checked_in_at ? 'Checked In' : 'Not Checked In',
+                $attendee->checked_in_at ? $attendee->checked_in_at->format('Y-m-d H:i:s') : 'N/A'
+            ]);
+        }
+        
+        // Generate filename
+        $filename = 'attendees_' . $event->id . '_' . date('Y-m-d_H-i-s') . '.csv';
+        
+        // Create response
+        $response = new StreamedResponse(function() use ($csv) {
+            echo $csv->toString();
+        });
+        
+        $response->headers->set('Content-Type', 'text/csv');
+        $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        
+        return $response;
     }
 }

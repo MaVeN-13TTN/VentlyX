@@ -16,6 +16,8 @@ use App\Http\Controllers\API\CheckInController;
 use App\Http\Controllers\API\NotificationController;
 use App\Http\Controllers\API\UserAnalyticsController;
 use App\Http\Controllers\API\SavedEventController;
+use App\Http\Controllers\API\DiscountCodeController;
+use App\Http\Controllers\API\OfflineController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -68,6 +70,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/events/{eventId}/ticket-types', [TicketTypeController::class, 'index']);
         Route::get('/events/{eventId}/ticket-types/availability', [TicketTypeController::class, 'checkAvailability']);
         Route::get('/events/{eventId}/ticket-types/{id}', [TicketTypeController::class, 'show']);
+        
+        // Public discount code validation
+        Route::post('/events/{eventId}/discount-codes/validate', [DiscountCodeController::class, 'validate']);
     });
 
     // Protected routes
@@ -84,6 +89,13 @@ Route::prefix('v1')->group(function () {
             Route::post('/confirm', [TwoFactorController::class, 'confirm']);
             Route::post('/disable', [TwoFactorController::class, 'disable']);
             Route::post('/verify', [TwoFactorController::class, 'verify']);
+        });
+        
+        // Offline functionality
+        Route::prefix('offline')->group(function () {
+            Route::get('/tickets', [OfflineController::class, 'getUserTickets']);
+            Route::get('/events/{eventId}/package', [OfflineController::class, 'generateEventPackage']);
+            Route::post('/events/{eventId}/sync', [OfflineController::class, 'syncCheckIns']);
         });
 
         // Notification routes
@@ -166,10 +178,22 @@ Route::prefix('v1')->group(function () {
             Route::delete('/events/{eventId}/ticket-types/bulk', [TicketTypeController::class, 'bulkDelete']);
             Route::put('/events/{eventId}/ticket-types/{id}', [TicketTypeController::class, 'update']);
             Route::delete('/events/{eventId}/ticket-types/{id}', [TicketTypeController::class, 'destroy']);
+            
+            // Discount code management
+            Route::get('/events/{eventId}/discount-codes', [DiscountCodeController::class, 'index']);
+            Route::post('/events/{eventId}/discount-codes', [DiscountCodeController::class, 'store']);
+            Route::post('/events/{eventId}/discount-codes/bulk', [DiscountCodeController::class, 'bulkStore']);
+            Route::get('/events/{eventId}/discount-codes/{id}', [DiscountCodeController::class, 'show']);
+            Route::put('/events/{eventId}/discount-codes/{id}', [DiscountCodeController::class, 'update']);
+            Route::delete('/events/{eventId}/discount-codes/{id}', [DiscountCodeController::class, 'destroy']);
 
             // Organizer routes with analytics access
             Route::get('/analytics/my-events/{id}', [EventAnalyticsController::class, 'getEventStats']);
             Route::get('/analytics/organizer-dashboard', [EventAnalyticsController::class, 'getOrganizerStats']);
+            
+            // Export functionality
+            Route::get('/events/{eventId}/attendees/export', [CheckInController::class, 'exportAttendees']);
+            Route::get('/events/{eventId}/sales/export', [EventAnalyticsController::class, 'exportSalesData']);
         });
 
         // Admin routes
@@ -196,6 +220,11 @@ Route::prefix('v1')->group(function () {
             Route::get('/roles', [UserManagementController::class, 'roles']);
             Route::put('/users/{id}/roles', [UserManagementController::class, 'updateRoles']);
             Route::patch('/users/{id}/toggle-active', [UserManagementController::class, 'toggleActive']);
+            
+            // System health monitoring
+            Route::get('/system/health', [UserManagementController::class, 'systemHealth']);
+            Route::get('/system/logs', [UserManagementController::class, 'systemLogs']);
+            Route::get('/system/audit-logs', [UserManagementController::class, 'auditLogs']);
         });
     });
 });

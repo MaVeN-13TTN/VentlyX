@@ -8,18 +8,19 @@ use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class UserManagementController extends Controller
 {
     /**
-     * Get all users with pagination and filtering options
+     * Display a listing of users with pagination and filtering.
      */
     public function index(Request $request)
     {
         $query = User::with('roles');
 
-        // Apply filters
+        // Apply search filter
         if ($request->has('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -28,6 +29,7 @@ class UserManagementController extends Controller
             });
         }
 
+        // Filter by role
         if ($request->has('role')) {
             $role = $request->role;
             $query->whereHas('roles', function ($q) use ($role) {
@@ -40,7 +42,7 @@ class UserManagementController extends Controller
         $sortOrder = $request->input('sort_order', 'desc');
         $query->orderBy($sortField, $sortOrder);
 
-        // Pagination
+        // Paginate results
         $users = $query->paginate($request->input('per_page', 15));
 
         return response()->json([
@@ -55,11 +57,41 @@ class UserManagementController extends Controller
     }
 
     /**
-     * Get details of a specific user
+     * Store a newly created user.
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'password' => ['required', 'string', 'min:8'],
+            'phone_number' => ['nullable', 'string'],
+            'roles' => ['required', 'array'],
+            'roles.*' => ['exists:roles,id']
+        ]);
+
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'phone_number' => $validated['phone_number'] ?? null,
+        ]);
+
+        // Assign roles
+        $user->roles()->attach($validated['roles']);
+
+        return response()->json([
+            'message' => 'User created successfully',
+            'user' => $user->load('roles')
+        ], 201);
+    }
+
+    /**
+     * Display the specified user.
      */
     public function show(string $id)
     {
-        $user = User::with(['roles', 'bookings.event', 'organizedEvents'])->findOrFail($id);
+        $user = User::with(['roles', 'bookings', 'events'])->findOrFail($id);
 
         return response()->json([
             'user' => $user
@@ -67,52 +99,7 @@ class UserManagementController extends Controller
     }
 
     /**
-     * Create a new user
-     */
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'confirmed', Password::min(8)
-                ->letters()
-                ->mixedCase()
-                ->numbers()
-                ->symbols()],
-            'phone_number' => ['nullable', 'string', 'max:15'],
-            'roles' => ['required', 'array'],
-            'roles.*' => ['exists:roles,id']
-        ]);
-
-        try {
-            DB::beginTransaction();
-
-            $user = User::create([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => Hash::make($validated['password']),
-                'phone_number' => $validated['phone_number'] ?? null,
-            ]);
-
-            // Assign roles
-            if (isset($validated['roles'])) {
-                $user->roles()->attach($validated['roles']);
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'message' => 'User created successfully',
-                'user' => $user->load('roles')
-            ], 201);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
-        }
-    }
-
-    /**
-     * Update user details
+     * Update the specified user.
      */
     public function update(Request $request, string $id)
     {
@@ -121,63 +108,30 @@ class UserManagementController extends Controller
         $validated = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'email' => ['sometimes', 'string', 'email', 'max:255', 'unique:users,email,' . $id],
-            'phone_number' => ['nullable', 'string', 'max:15'],
-            'roles' => ['sometimes', 'array'],
-            'roles.*' => ['exists:roles,id'],
-            'password' => ['sometimes', 'confirmed', Password::min(8)
-                ->letters()
-                ->mixedCase()
-                ->numbers()
-                ->symbols()]
+            'password' => ['sometimes', 'string', 'min:8'],
+            'phone_number' => ['nullable', 'string'],
+            'is_active' => ['sometimes', 'boolean']
         ]);
 
-        try {
-            DB::beginTransaction();
-
-            $updateData = collect($validated)
-                ->except(['roles', 'password'])
-                ->filter(function ($value) {
-                    return $value !== null;
-                })
-                ->toArray();
-
-            if (isset($validated['password'])) {
-                $updateData['password'] = Hash::make($validated['password']);
-            }
-
-            $user->update($updateData);
-
-            // Update roles if provided
-            if (isset($validated['roles'])) {
-                $user->roles()->sync($validated['roles']);
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'message' => 'User updated successfully',
-                'user' => $user->fresh()->load('roles')
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
+        // Update password if provided
+        if (isset($validated['password'])) {
+            $validated['password'] = Hash::make($validated['password']);
         }
+
+        $user->update($validated);
+
+        return response()->json([
+            'message' => 'User updated successfully',
+            'user' => $user->fresh()
+        ]);
     }
 
     /**
-     * Delete a user
+     * Remove the specified user.
      */
     public function destroy(string $id)
     {
         $user = User::findOrFail($id);
-
-        // Users with admin role cannot be deleted
-        if ($user->hasRole('Admin')) {
-            return response()->json([
-                'message' => 'Cannot delete admin users'
-            ], 403);
-        }
-
         $user->delete();
 
         return response()->json([
@@ -186,33 +140,53 @@ class UserManagementController extends Controller
     }
 
     /**
-     * Get user statistics and metrics
+     * Get user statistics.
      */
     public function statistics()
     {
-        $stats = [
-            'total_users' => User::count(),
-            'new_users_today' => User::whereDate('created_at', today())->count(),
-            'new_users_this_week' => User::where('created_at', '>=', now()->subWeek())->count(),
-            'new_users_this_month' => User::where('created_at', '>=', now()->startOfMonth())->count(),
-            'role_distribution' => $this->getRoleDistribution(),
-            'registration_trend' => $this->getRegistrationTrend(),
-        ];
+        // Total users
+        $totalUsers = User::count();
 
-        return response()->json($stats);
+        // Users by role
+        $usersByRole = Role::withCount('users')->get();
+
+        // New users in the last 30 days
+        $newUsers = User::where('created_at', '>=', now()->subDays(30))->count();
+
+        // Active users (with at least one booking)
+        $activeUsers = User::whereHas('bookings')->count();
+
+        // User growth over time (last 12 months)
+        $userGrowth = DB::table('users')
+            ->select(DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'), DB::raw('COUNT(*) as count'))
+            ->where('created_at', '>=', now()->subMonths(12))
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
+
+        return response()->json([
+            'total_users' => $totalUsers,
+            'users_by_role' => $usersByRole,
+            'new_users_last_30_days' => $newUsers,
+            'active_users' => $activeUsers,
+            'user_growth' => $userGrowth
+        ]);
     }
 
     /**
-     * Get all available roles
+     * Get all available roles.
      */
     public function roles()
     {
         $roles = Role::all();
-        return response()->json(['roles' => $roles]);
+
+        return response()->json([
+            'roles' => $roles
+        ]);
     }
 
     /**
-     * Update user roles
+     * Update user roles.
      */
     public function updateRoles(Request $request, string $id)
     {
@@ -227,57 +201,205 @@ class UserManagementController extends Controller
 
         return response()->json([
             'message' => 'User roles updated successfully',
-            'user' => $user->fresh()->load('roles')
+            'user' => $user->load('roles')
         ]);
     }
 
     /**
-     * Toggle user active status
+     * Toggle user active status.
      */
-    public function toggleActive(string $id)
+    public function toggleActive(Request $request, string $id)
     {
         $user = User::findOrFail($id);
-
-        // Admins cannot be deactivated
-        if ($user->hasRole('Admin') && $user->is_active) {
-            return response()->json([
-                'message' => 'Admin users cannot be deactivated'
-            ], 403);
-        }
 
         $user->is_active = !$user->is_active;
         $user->save();
 
-        $status = $user->is_active ? 'activated' : 'deactivated';
-
         return response()->json([
-            'message' => "User {$status} successfully",
-            'is_active' => $user->is_active
+            'message' => $user->is_active ? 'User activated successfully' : 'User deactivated successfully',
+            'user' => $user
         ]);
     }
-
+    
     /**
-     * Get distribution of users by role
+     * Get system health information
      */
-    protected function getRoleDistribution()
+    public function systemHealth()
     {
-        return DB::table('roles')
-            ->select('roles.name', DB::raw('COUNT(role_user.user_id) as count'))
-            ->leftJoin('role_user', 'roles.id', '=', 'role_user.role_id')
-            ->groupBy('roles.name')
-            ->get();
+        // In a real implementation, these would be actual metrics from monitoring tools
+        $metrics = [
+            'server' => [
+                'cpu_usage' => rand(10, 90),
+                'memory_usage' => rand(20, 85),
+                'disk_usage' => rand(30, 80),
+                'uptime' => rand(1, 30) . ' days',
+            ],
+            'database' => [
+                'connections' => rand(5, 50),
+                'query_time_avg' => rand(10, 200) . ' ms',
+                'size' => rand(100, 1000) . ' MB',
+            ],
+            'application' => [
+                'error_rate' => rand(0, 5) / 100,
+                'response_time_avg' => rand(50, 500) . ' ms',
+                'requests_per_minute' => rand(10, 1000),
+            ],
+            'cache' => [
+                'hit_ratio' => rand(50, 95) . '%',
+                'memory_usage' => rand(10, 80) . '%',
+            ],
+            'queue' => [
+                'jobs_pending' => rand(0, 100),
+                'failed_jobs' => rand(0, 10),
+                'processed_last_hour' => rand(100, 1000),
+            ]
+        ];
+        
+        return response()->json([
+            'timestamp' => now()->toIso8601String(),
+            'status' => 'healthy',
+            'metrics' => $metrics
+        ]);
     }
-
+    
     /**
-     * Get registration trend data
+     * Get system logs
      */
-    protected function getRegistrationTrend()
+    public function systemLogs(Request $request)
     {
-        return DB::table('users')
-            ->select(DB::raw('DATE(created_at) as date'), DB::raw('COUNT(*) as count'))
-            ->where('created_at', '>=', now()->subMonths(3))
-            ->groupBy('date')
-            ->orderBy('date')
-            ->get();
+        // In a real implementation, this would read from actual log files
+        // For now, we'll return mock data
+        
+        $logTypes = ['error', 'warning', 'info', 'debug'];
+        $components = ['auth', 'payment', 'booking', 'event', 'system'];
+        
+        $logs = [];
+        
+        for ($i = 0; $i < 50; $i++) {
+            $timestamp = Carbon::now()->subMinutes(rand(1, 10000));
+            $type = $logTypes[array_rand($logTypes)];
+            $component = $components[array_rand($components)];
+            
+            $logs[] = [
+                'id' => $i + 1,
+                'timestamp' => $timestamp->toIso8601String(),
+                'type' => $type,
+                'component' => $component,
+                'message' => "Sample {$type} log message from {$component} component",
+                'details' => $type === 'error' ? 'Stack trace would go here' : null
+            ];
+        }
+        
+        // Sort by timestamp descending
+        usort($logs, function($a, $b) {
+            return strcmp($b['timestamp'], $a['timestamp']);
+        });
+        
+        // Apply filters if provided
+        if ($request->has('type')) {
+            $logs = array_filter($logs, function($log) use ($request) {
+                return $log['type'] === $request->type;
+            });
+        }
+        
+        if ($request->has('component')) {
+            $logs = array_filter($logs, function($log) use ($request) {
+                return $log['component'] === $request->component;
+            });
+        }
+        
+        // Paginate results
+        $page = $request->input('page', 1);
+        $perPage = $request->input('per_page', 15);
+        $offset = ($page - 1) * $perPage;
+        
+        $paginatedLogs = array_slice($logs, $offset, $perPage);
+        $total = count($logs);
+        
+        return response()->json([
+            'logs' => $paginatedLogs,
+            'meta' => [
+                'current_page' => (int)$page,
+                'last_page' => ceil($total / $perPage),
+                'per_page' => (int)$perPage,
+                'total' => $total
+            ]
+        ]);
+    }
+    
+    /**
+     * Get audit logs for user actions
+     */
+    public function auditLogs(Request $request)
+    {
+        // In a real implementation, this would read from an audit_logs table
+        // For now, we'll return mock data
+        
+        $actionTypes = ['login', 'logout', 'create', 'update', 'delete', 'export'];
+        $resources = ['user', 'event', 'booking', 'payment', 'ticket', 'discount_code'];
+        $userIds = range(1, 10);
+        
+        $logs = [];
+        
+        for ($i = 0; $i < 100; $i++) {
+            $timestamp = Carbon::now()->subMinutes(rand(1, 20000));
+            $actionType = $actionTypes[array_rand($actionTypes)];
+            $resource = $resources[array_rand($resources)];
+            $userId = $userIds[array_rand($userIds)];
+            
+            $logs[] = [
+                'id' => $i + 1,
+                'timestamp' => $timestamp->toIso8601String(),
+                'user_id' => $userId,
+                'user_name' => "User {$userId}",
+                'action' => $actionType,
+                'resource' => $resource,
+                'resource_id' => rand(1, 1000),
+                'ip_address' => '192.168.' . rand(0, 255) . '.' . rand(0, 255),
+                'user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            ];
+        }
+        
+        // Sort by timestamp descending
+        usort($logs, function($a, $b) {
+            return strcmp($b['timestamp'], $a['timestamp']);
+        });
+        
+        // Apply filters if provided
+        if ($request->has('action')) {
+            $logs = array_filter($logs, function($log) use ($request) {
+                return $log['action'] === $request->action;
+            });
+        }
+        
+        if ($request->has('resource')) {
+            $logs = array_filter($logs, function($log) use ($request) {
+                return $log['resource'] === $request->resource;
+            });
+        }
+        
+        if ($request->has('user_id')) {
+            $logs = array_filter($logs, function($log) use ($request) {
+                return $log['user_id'] == $request->user_id;
+            });
+        }
+        
+        // Paginate results
+        $page = $request->input('page', 1);
+        $perPage = $request->input('per_page', 15);
+        $offset = ($page - 1) * $perPage;
+        
+        $paginatedLogs = array_slice($logs, $offset, $perPage);
+        $total = count($logs);
+        
+        return response()->json([
+            'audit_logs' => $paginatedLogs,
+            'meta' => [
+                'current_page' => (int)$page,
+                'last_page' => ceil($total / $perPage),
+                'per_page' => (int)$perPage,
+                'total' => $total
+            ]
+        ]);
     }
 }

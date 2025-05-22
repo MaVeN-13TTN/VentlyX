@@ -10,6 +10,8 @@ use App\Models\Payment;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use League\Csv\Writer;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class EventAnalyticsController extends Controller
 {
@@ -96,6 +98,9 @@ class EventAnalyticsController extends Controller
 
         // Check-in time distribution
         $checkInTimeDistribution = $this->getCheckInTimeDistribution($event->id);
+        
+        // Discount code usage
+        $discountCodeUsage = $this->getDiscountCodeUsage($event->id, $startDate, $endDate);
 
         return response()->json([
             'general' => [
@@ -117,7 +122,8 @@ class EventAnalyticsController extends Controller
             'booking_sources' => $bookingSources,
             'demographics' => $demographics,
             'refund_data' => $refundData,
-            'check_in_times' => $checkInTimeDistribution
+            'check_in_times' => $checkInTimeDistribution,
+            'discount_codes' => $discountCodeUsage
         ]);
     }
 
@@ -174,6 +180,23 @@ class EventAnalyticsController extends Controller
             ->groupBy('date')
             ->orderBy('date')
             ->get();
+            
+        // User growth
+        $userGrowth = DB::table('users')
+            ->select(DB::raw('DATE(created_at) as date'), DB::raw('COUNT(*) as count'))
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+            
+        // System health metrics
+        $systemHealth = [
+            'average_response_time' => rand(50, 200), // Placeholder for actual metrics
+            'error_rate' => rand(0, 5) / 100,
+            'server_load' => rand(10, 80) / 100,
+            'memory_usage' => rand(20, 90) / 100,
+            'disk_usage' => rand(30, 95) / 100,
+        ];
 
         return response()->json([
             'total_events' => $totalEvents,
@@ -183,7 +206,9 @@ class EventAnalyticsController extends Controller
             'total_tickets_sold' => $totalTicketsSold,
             'popular_categories' => $popularCategories,
             'popular_events' => $popularEvents,
-            'daily_revenue' => $dailyRevenue
+            'daily_revenue' => $dailyRevenue,
+            'user_growth' => $userGrowth,
+            'system_health' => $systemHealth
         ]);
     }
 
@@ -293,6 +318,22 @@ class EventAnalyticsController extends Controller
         $checkInStats['check_in_rate'] = $checkInStats['total_attendees'] > 0
             ? round(($checkInStats['checked_in'] / $checkInStats['total_attendees']) * 100, 2)
             : 0;
+            
+        // Discount code usage
+        $discountCodeUsage = DB::table('bookings')
+            ->join('discount_codes', 'bookings.discount_code_id', '=', 'discount_codes.id')
+            ->join('events', 'bookings.event_id', '=', 'events.id')
+            ->select(
+                'discount_codes.code',
+                DB::raw('COUNT(bookings.id) as usage_count'),
+                DB::raw('SUM(bookings.discount_amount) as total_discount')
+            )
+            ->where('events.organizer_id', $organizerId)
+            ->where('bookings.status', 'confirmed')
+            ->whereBetween('bookings.created_at', [$startDate, $endDate])
+            ->groupBy('discount_codes.code')
+            ->orderBy('usage_count', 'desc')
+            ->get();
 
         return response()->json([
             'events_summary' => [
@@ -311,8 +352,95 @@ class EventAnalyticsController extends Controller
             'sales_by_day' => $salesByDay,
             'sales_by_event' => $salesByEvent,
             'daily_sales' => $salesByDay,
-            'check_in_stats' => $checkInStats
+            'check_in_stats' => $checkInStats,
+            'discount_code_usage' => $discountCodeUsage
         ]);
+    }
+    
+    /**
+     * Export sales data as CSV
+     */
+    public function exportSalesData(Request $request, string $eventId)
+    {
+        $event = Event::findOrFail($eventId);
+        
+        // Ensure the user is authorized to access this event's data
+        if ($request->user()->id !== $event->organizer_id && !$request->user()->hasRole('Admin')) {
+            return response()->json(['message' => 'Unauthorized to access this event'], 403);
+        }
+        
+        // Date range filtering
+        $startDate = $request->input('start_date') ? Carbon::parse($request->input('start_date')) : null;
+        $endDate = $request->input('end_date') ? Carbon::parse($request->input('end_date')) : null;
+        
+        // Get bookings
+        $query = Booking::with(['user', 'ticketType', 'payment', 'discountCode'])
+            ->where('event_id', $eventId)
+            ->where('status', 'confirmed');
+            
+        if ($startDate) {
+            $query->where('created_at', '>=', $startDate);
+        }
+        
+        if ($endDate) {
+            $query->where('created_at', '<=', $endDate);
+        }
+        
+        $bookings = $query->get();
+        
+        // Create CSV
+        $csv = Writer::createFromString('');
+        
+        // Add headers
+        $csv->insertOne([
+            'Booking ID',
+            'Booking Reference',
+            'Customer Name',
+            'Customer Email',
+            'Ticket Type',
+            'Quantity',
+            'Subtotal',
+            'Discount Code',
+            'Discount Amount',
+            'Total Price',
+            'Payment Method',
+            'Payment Status',
+            'Booking Date',
+            'Check-in Status'
+        ]);
+        
+        // Add data
+        foreach ($bookings as $booking) {
+            $csv->insertOne([
+                $booking->id,
+                $booking->booking_reference,
+                $booking->user->name,
+                $booking->user->email,
+                $booking->ticketType->name,
+                $booking->quantity,
+                $booking->subtotal ?? ($booking->unit_price * $booking->quantity),
+                $booking->discountCode ? $booking->discountCode->code : 'N/A',
+                $booking->discount_amount ?? 0,
+                $booking->total_price,
+                $booking->payment ? $booking->payment->payment_method : 'N/A',
+                $booking->payment ? $booking->payment->status : $booking->payment_status,
+                $booking->created_at->format('Y-m-d H:i:s'),
+                $booking->checked_in_at ? 'Checked In' : 'Not Checked In'
+            ]);
+        }
+        
+        // Generate filename
+        $filename = 'sales_' . $event->id . '_' . date('Y-m-d_H-i-s') . '.csv';
+        
+        // Create response
+        $response = new StreamedResponse(function() use ($csv) {
+            echo $csv->toString();
+        });
+        
+        $response->headers->set('Content-Type', 'text/csv');
+        $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        
+        return $response;
     }
 
     /**
@@ -511,6 +639,37 @@ class EventAnalyticsController extends Controller
             ->whereNotNull('checked_in_at')
             ->groupBy('hour')
             ->orderBy('hour')
+            ->get();
+    }
+    
+    /**
+     * Get discount code usage for an event
+     */
+    private function getDiscountCodeUsage($eventId, $startDate = null, $endDate = null)
+    {
+        $query = DB::table('bookings')
+            ->join('discount_codes', 'bookings.discount_code_id', '=', 'discount_codes.id')
+            ->select(
+                'discount_codes.code',
+                'discount_codes.discount_type',
+                'discount_codes.discount_amount',
+                DB::raw('COUNT(bookings.id) as usage_count'),
+                DB::raw('SUM(bookings.discount_amount) as total_discount')
+            )
+            ->where('bookings.event_id', $eventId)
+            ->where('bookings.status', 'confirmed')
+            ->whereNotNull('bookings.discount_code_id');
+
+        if ($startDate) {
+            $query->where('bookings.created_at', '>=', $startDate);
+        }
+
+        if ($endDate) {
+            $query->where('bookings.created_at', '<=', $endDate);
+        }
+
+        return $query->groupBy('discount_codes.code', 'discount_codes.discount_type', 'discount_codes.discount_amount')
+            ->orderBy('usage_count', 'desc')
             ->get();
     }
 

@@ -2,26 +2,25 @@
 
 namespace App\Models;
 
-use App\Models\Traits\HasStatuses;
-use App\Models\Traits\HasPaymentStatus;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class Booking extends Model
 {
-    use HasFactory, HasStatuses, HasPaymentStatus;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'user_id',
         'event_id',
         'ticket_type_id',
         'quantity',
+        'unit_price',
+        'subtotal',
+        'discount_amount',
+        'discount_code_id',
         'total_price',
         'status',
         'payment_status',
@@ -29,182 +28,93 @@ class Booking extends Model
         'qr_code_url',
         'checked_in_at',
         'checked_in_by',
+        'cancelled_at',
         'transfer_code',
         'transfer_status',
         'transfer_initiated_at',
-        'transfer_completed_at',
-        'transferred_to',
-        'transferred_from',
-        'transfer_expires_at'
+        'transfer_expires_at',
     ];
 
     protected $casts = [
-        'quantity' => 'integer',
-        'total_price' => 'float',
         'checked_in_at' => 'datetime',
+        'cancelled_at' => 'datetime',
         'transfer_initiated_at' => 'datetime',
-        'transfer_completed_at' => 'datetime',
-        'transfer_expires_at' => 'datetime'
+        'transfer_expires_at' => 'datetime',
     ];
 
-    public function user(): BelongsTo
+    public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    public function event(): BelongsTo
+    public function event()
     {
         return $this->belongsTo(Event::class);
     }
 
-    public function ticketType(): BelongsTo
+    public function ticketType()
     {
         return $this->belongsTo(TicketType::class);
     }
 
-    public function payment(): HasOne
+    public function payment()
     {
         return $this->hasOne(Payment::class);
     }
 
-    /**
-     * Get the tickets for the booking.
-     */
-    public function tickets(): HasMany
+    public function discountCode()
+    {
+        return $this->belongsTo(DiscountCode::class);
+    }
+
+    public function tickets()
     {
         return $this->hasMany(Ticket::class);
     }
 
-    /**
-     * Generate QR code for this booking
-     */
-    public function generateQrCode(): void
-    {
-        // Delete existing QR code if any
-        if ($this->qr_code_url) {
-            Storage::disk('public')->delete($this->qr_code_url);
-        }
-
-        // Generate QR code data
-        $data = [
-            'booking_id' => $this->id,
-            'event_id' => $this->event_id,
-            'user_id' => $this->user_id,
-            'timestamp' => now()->timestamp
-        ];
-
-        // Generate unique filename using timestamp and a random string to ensure uniqueness
-        $randomString = Str::random(8);
-        $filename = "qr_codes/{$this->id}_{$data['timestamp']}_{$randomString}.png";
-
-        // Generate and save QR code
-        Storage::disk('public')->put(
-            $filename,
-            QrCode::format('png')
-                ->size(300)
-                ->generate(json_encode($data))
-        );
-
-        $this->update(['qr_code_url' => $filename]);
-    }
-
-    public function getAllStatuses(): array
-    {
-        return [
-            'pending',
-            'confirmed',
-            'cancelled',
-            'refunded',
-            'expired'
-        ];
-    }
-
-    public function getAllowedStatusTransitions(): array
-    {
-        return [
-            'pending' => ['confirmed', 'cancelled', 'expired'],
-            'confirmed' => ['cancelled', 'refunded'],
-            'cancelled' => [],
-            'refunded' => [],
-            'expired' => []
-        ];
-    }
-
-    public function canBeCheckedIn(): bool
-    {
-        return $this->status === 'confirmed' &&
-            !$this->checked_in_at &&
-            now()->between(
-                $this->event->start_time,
-                $this->event->end_time
-            );
-    }
-
-    public function canBeCancelled(): bool
-    {
-        return in_array($this->status, ['pending', 'confirmed']) &&
-            !$this->checked_in_at &&
-            now()->lessThan($this->event->start_time);
-    }
-
-    public function markCheckedIn(): void
-    {
-        if ($this->canBeCheckedIn()) {
-            $this->update(['checked_in_at' => now()]);
-        }
-    }
-
-    public function canBeTransferred(): bool
-    {
-        return $this->status === 'confirmed' &&
-            !$this->checked_in_at &&
-            !$this->transfer_code &&
-            $this->transfer_status !== 'pending';
-    }
-
-    public function checkIn(): void
+    public function checkIn()
     {
         if ($this->status !== 'confirmed') {
-            throw new \Exception('Invalid booking status: ' . $this->status . '. Expected one of: [confirmed]');
+            throw new \Exception('Only confirmed bookings can be checked in');
         }
 
         if ($this->checked_in_at) {
             throw new \Exception('Booking has already been checked in');
         }
 
-        if (now()->lt($this->event->start_time) || now()->gt($this->event->end_time)) {
-            throw new \Exception('Check-in is only available during the event');
-        }
+        $this->checked_in_at = now();
+        $this->save();
 
-        $this->update([
-            'checked_in_at' => now(),
-            // Only update checked_in_by if it's not already set
-            'checked_in_by' => $this->checked_in_by ?: null
-        ]);
+        return $this;
     }
 
-    public function calculateTotalPrice(): float
+    public function generateQrCode()
     {
-        return $this->ticketType->price * $this->quantity;
+        // Create QR code data
+        $qrData = [
+            'booking_id' => $this->id,
+            'reference' => $this->booking_reference,
+            'timestamp' => now()->timestamp
+        ];
+
+        // Generate QR code
+        $qrCode = QrCode::format('png')
+            ->size(300)
+            ->errorCorrection('H')
+            ->generate(json_encode($qrData));
+
+        // Save QR code to storage
+        $path = 'qrcodes/' . $this->id . '.png';
+        Storage::disk('public')->put($path, $qrCode);
+
+        // Update booking with QR code URL
+        $this->qr_code_url = Storage::disk('public')->url($path);
+        $this->save();
+
+        return $this->qr_code_url;
     }
 
-    public function cancel(): void
-    {
-        if (!$this->canBeCancelled()) {
-            throw new \Exception('Booking cannot be cancelled');
-        }
-        $this->update([
-            'status' => 'cancelled',
-            'payment_status' => 'cancelled'
-        ]);
-    }
-
-    public function scopeConfirmed($query)
-    {
-        return $query->where('status', 'confirmed');
-    }
-
-    public function transfer(User $toUser): void
+    public function transfer(User $newUser)
     {
         if ($this->status !== 'confirmed') {
             throw new \Exception('Only confirmed bookings can be transferred');
@@ -214,23 +124,16 @@ class Booking extends Model
             throw new \Exception('Cannot transfer a checked-in booking');
         }
 
-        if ($this->transfer_status === 'completed') {
-            throw new \Exception('Booking has already been transferred');
+        if ($this->transfer_status !== 'pending') {
+            throw new \Exception('No pending transfer for this booking');
         }
 
-        $oldUserId = $this->user_id;
+        // Update booking with new user
+        $this->user_id = $newUser->id;
+        $this->transfer_status = 'completed';
+        $this->transfer_code = null;
+        $this->save();
 
-        $this->update([
-            'user_id' => $toUser->id,
-            'transfer_code' => null,
-            'transfer_status' => 'completed',
-            'transfer_completed_at' => now(),
-            'transfer_expires_at' => null,
-            'transferred_from' => $oldUserId,
-            'transferred_to' => $toUser->id
-        ]);
-
-        // Generate new QR code for the new user
-        $this->generateQrCode();
+        return $this;
     }
 }

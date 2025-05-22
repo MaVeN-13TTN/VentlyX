@@ -9,6 +9,7 @@ use App\Http\Requests\Booking\CheckInBookingRequest;
 use App\Models\Booking;
 use App\Models\Event;
 use App\Models\TicketType;
+use App\Models\DiscountCode;
 use App\Exceptions\Api\BookingException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -71,12 +72,39 @@ class BookingController extends Controller
         try {
             DB::beginTransaction();
 
+            // Calculate subtotal
+            $subtotal = $ticketType->price * $validated['quantity'];
+            $totalPrice = $subtotal;
+            $discountAmount = 0;
+            $discountCodeId = null;
+
+            // Apply discount code if provided
+            if (!empty($validated['discount_code'])) {
+                $discountCode = DiscountCode::where('event_id', $validated['event_id'])
+                    ->where('code', $validated['discount_code'])
+                    ->first();
+                    
+                if ($discountCode && $discountCode->isValid()) {
+                    if ($validated['quantity'] >= $discountCode->min_ticket_count) {
+                        $discountAmount = $discountCode->calculateDiscount($subtotal, $validated['quantity']);
+                        $totalPrice = $subtotal - $discountAmount;
+                        $discountCodeId = $discountCode->id;
+                        
+                        // Increment usage count
+                        $discountCode->incrementUsage();
+                    }
+                }
+            }
+
             $booking = Booking::create([
                 'user_id' => $request->user()->id,
                 'event_id' => $validated['event_id'],
                 'ticket_type_id' => $ticketType->id,
                 'quantity' => $validated['quantity'],
-                'total_price' => $ticketType->price * $validated['quantity'],
+                'subtotal' => $subtotal,
+                'discount_amount' => $discountAmount,
+                'discount_code_id' => $discountCodeId,
+                'total_price' => $totalPrice,
                 'status' => 'pending',
                 'payment_status' => 'pending',
                 'booking_reference' => 'BK-' . strtoupper(uniqid())
@@ -102,7 +130,7 @@ class BookingController extends Controller
      */
     public function show(Request $request, string $id)
     {
-        $booking = Booking::with(['event', 'ticketType', 'payment'])
+        $booking = Booking::with(['event', 'ticketType', 'payment', 'discountCode'])
             ->where('id', $id)
             ->where(function ($query) use ($request) {
                 $query->where('user_id', $request->user()->id)
@@ -122,7 +150,8 @@ class BookingController extends Controller
             'booking' => array_merge($bookingData, [
                 'event' => $booking->event,
                 'ticketType' => $booking->ticketType,
-                'payment' => $booking->payment
+                'payment' => $booking->payment,
+                'discountCode' => $booking->discountCode
             ])
         ]);
     }
