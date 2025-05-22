@@ -18,6 +18,8 @@ use App\Http\Controllers\API\UserAnalyticsController;
 use App\Http\Controllers\API\SavedEventController;
 use App\Http\Controllers\API\DiscountCodeController;
 use App\Http\Controllers\API\OfflineController;
+use App\Http\Controllers\API\LocalizationController;
+use App\Http\Controllers\API\SecurityController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -73,6 +75,10 @@ Route::prefix('v1')->group(function () {
         
         // Public discount code validation
         Route::post('/events/{eventId}/discount-codes/validate', [DiscountCodeController::class, 'validate']);
+        
+        // Localization routes
+        Route::get('/locales', [LocalizationController::class, 'getLocales']);
+        Route::get('/translations/{locale?}', [LocalizationController::class, 'getTranslations']);
     });
 
     // Protected routes
@@ -82,6 +88,9 @@ Route::prefix('v1')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
         });
         Route::get('/profile', [AuthController::class, 'profile']);
+        
+        // User locale preference
+        Route::post('/locale', [LocalizationController::class, 'setLocale']);
 
         // 2FA routes
         Route::prefix('2fa')->group(function () {
@@ -225,6 +234,12 @@ Route::prefix('v1')->group(function () {
             Route::get('/system/health', [UserManagementController::class, 'systemHealth']);
             Route::get('/system/logs', [UserManagementController::class, 'systemLogs']);
             Route::get('/system/audit-logs', [UserManagementController::class, 'auditLogs']);
+            
+            // Security configuration
+            Route::get('/security/csp', [SecurityController::class, 'getCSP']);
+            Route::get('/security/headers', [SecurityController::class, 'getSecurityHeaders']);
+            Route::get('/security/cors', [SecurityController::class, 'getCorsConfig']);
+            Route::get('/security/recommendations', [SecurityController::class, 'getSecurityRecommendations']);
         });
     });
 });

@@ -2,22 +2,20 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use App\Notifications\ResetPasswordNotification;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $fillable = [
         'name',
@@ -25,53 +23,40 @@ class User extends Authenticatable
         'password',
         'phone_number',
         'profile_picture',
-        'two_factor_enabled',
         'two_factor_secret',
         'two_factor_recovery_codes',
-        'two_factor_confirmed_at'
+        'two_factor_confirmed_at',
+        'is_active',
+        'preferences',
     ];
 
     /**
      * The attributes that should be hidden for serialization.
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $hidden = [
         'password',
         'remember_token',
         'two_factor_secret',
-        'two_factor_recovery_codes'
+        'two_factor_recovery_codes',
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * The attributes that should be cast.
      *
-     * @return array<string, string>
+     * @var array<string, string>
      */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'two_factor_enabled' => 'boolean',
-            'two_factor_recovery_codes' => 'array',
-            'two_factor_confirmed_at' => 'datetime'
-        ];
-    }
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'two_factor_confirmed_at' => 'datetime',
+        'preferences' => 'array',
+        'is_active' => 'boolean',
+    ];
 
     /**
-     * Send a password reset notification to the user.
-     *
-     * @param  string  $token
-     * @return void
-     */
-    public function sendPasswordResetNotification($token)
-    {
-        $this->notify(new ResetPasswordNotification($token));
-    }
-
-    /**
-     * Get the roles associated with the user.
+     * Get the roles that belong to the user.
      */
     public function roles()
     {
@@ -79,15 +64,23 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the events organized by the user.
+     * Check if the user has a specific role.
      */
-    public function organizedEvents()
+    public function hasRole($roleName)
+    {
+        return $this->roles()->where('name', $roleName)->exists();
+    }
+
+    /**
+     * Get the events that the user has created.
+     */
+    public function events()
     {
         return $this->hasMany(Event::class, 'organizer_id');
     }
 
     /**
-     * Get the bookings made by the user.
+     * Get the bookings that the user has made.
      */
     public function bookings()
     {
@@ -95,18 +88,28 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user has a specific role.
+     * Get the saved events for the user.
      */
-    public function hasRole($roleName)
+    public function savedEvents()
     {
-        return $this->roles->contains('name', $roleName);
+        return $this->belongsToMany(Event::class, 'saved_events')
+            ->withTimestamps();
     }
 
     /**
-     * Check if user requires two-factor authentication.
+     * Get the notifications for the user.
      */
-    public function requiresTwoFactor(): bool
+    public function notifications()
     {
-        return $this->two_factor_enabled && $this->two_factor_confirmed_at;
+        return $this->morphMany(\Illuminate\Notifications\DatabaseNotification::class, 'notifiable')
+            ->orderBy('created_at', 'desc');
+    }
+
+    /**
+     * Get the user's two-factor enabled status.
+     */
+    public function getTwoFactorEnabledAttribute()
+    {
+        return $this->two_factor_confirmed_at !== null;
     }
 }
